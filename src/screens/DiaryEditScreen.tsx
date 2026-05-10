@@ -1,9 +1,9 @@
 import { View, Text } from "react-native";
 
-export default function DiaryCreateScreen() {
+export default function DiaryEditScreen() {
   return (
     <View>
-      <Text>DiaryCreateScreen</Text>
+      <Text>DiaryEditScreen</Text>
     </View>
   );
 }
