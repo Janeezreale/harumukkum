@@ -14,6 +14,17 @@ import {
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { colors } from '../constants/colors';
+import type { Diary } from '../types/diary';
+
+type FriendDiaryView = {
+  diary: Diary;
+  author: { id: string; nickname: string; profile_image_url: string | null };
+  // UI 전용 필드 (api 연동 시 별도 엔드포인트나 join으로 처리)
+  extraPhotos?: string[];
+  tags?: string[];
+  likeCount?: number;
+  commentCount?: number;
+};
 
 // TODO: replace with api/friends.getFriendList()
 const mockFriends = [
@@ -24,40 +35,58 @@ const mockFriends = [
 ];
 
 // TODO: replace with api/friends.getFriendDiaries()
-const mockFriendDiaries = [
+const mockFriendDiaries: FriendDiaryView[] = [
   {
     diary: {
       id: 'd1',
+      user_id: 'f1',
+      diary_date: '2026-05-26',
+      when_text: '오전',
+      where_text: '카페',
+      who_text: '혼자',
+      what_text: '공부',
+      emotion: 'happy',
+      why_text: '시험 준비',
       body: '오늘의 나를 표현하는 단어들',
       photo_url: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300',
-      extra_photo_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300',
-      tags: ['#설렘', '#5점', '#2자유'],
-      likes: 1,
-      comments: 2,
+      is_public: true,
       created_at: '2026-05-26T09:21:00Z',
+      updated_at: '2026-05-26T09:21:00Z',
     },
     author: {
       id: 'f1',
       nickname: '지윤',
       profile_image_url: 'https://i.pravatar.cc/150?img=1',
     },
+    extraPhotos: ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300'],
+    tags: ['#설렘', '#5점', '#2자유'],
+    likeCount: 1,
+    commentCount: 2,
   },
   {
     diary: {
       id: 'd2',
+      user_id: 'f2',
+      diary_date: '2026-05-26',
+      when_text: '하루 종일',
+      where_text: '여러 곳',
+      who_text: '친구',
+      what_text: '만남',
+      emotion: 'excited',
+      why_text: '오랜만에 만난 친구',
       body: '오늘은 정말 바쁜 하루였던 하루였어, 오랜만에 만난 친구와 보낸 시간이 너무 소중했고...',
       photo_url: null,
-      extra_photo_url: null,
-      tags: [],
-      likes: 0,
-      comments: 0,
+      is_public: true,
       created_at: '2026-05-26T09:08:00Z',
+      updated_at: '2026-05-26T09:08:00Z',
     },
     author: {
       id: 'f2',
       nickname: '민주',
       profile_image_url: 'https://i.pravatar.cc/150?img=2',
     },
+    likeCount: 0,
+    commentCount: 0,
   },
 ];
 
@@ -74,10 +103,8 @@ function formatSectionDate(): string {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${days[d.getDay()]}요일`;
 }
 
-type DiaryEntry = (typeof mockFriendDiaries)[number];
-
-function DiaryCard({ item }: { item: DiaryEntry }) {
-  const { diary, author } = item;
+function DiaryCard({ item }: { item: FriendDiaryView }) {
+  const { diary, author, extraPhotos, tags, likeCount, commentCount } = item;
   return (
     <View style={styles.card}>
       {/* 카드 헤더 */}
@@ -98,10 +125,10 @@ function DiaryCard({ item }: { item: DiaryEntry }) {
         {diary.body}
       </Text>
 
-      {/* 태그 */}
-      {diary.tags.length > 0 && (
+      {/* 태그 (UI 전용) */}
+      {tags && tags.length > 0 && (
         <View style={styles.tagRow}>
-          {diary.tags.map((tag) => (
+          {tags.map((tag) => (
             <View key={tag} style={styles.tag}>
               <Text style={styles.tagText}>{tag}</Text>
             </View>
@@ -109,32 +136,32 @@ function DiaryCard({ item }: { item: DiaryEntry }) {
         </View>
       )}
 
-      {/* 사진 */}
+      {/* 사진 (diary.photo_url + UI 전용 extraPhotos) */}
       {diary.photo_url && (
         <View style={styles.photoRow}>
           {/* TODO: navigate to photo detail */}
           <TouchableOpacity style={styles.photoWrapper} activeOpacity={0.9}>
             <Image source={{ uri: diary.photo_url }} style={styles.photo} />
           </TouchableOpacity>
-          {diary.extra_photo_url && (
+          {extraPhotos && extraPhotos[0] && (
             <TouchableOpacity style={styles.photoWrapper} activeOpacity={0.9}>
-              <Image source={{ uri: diary.extra_photo_url }} style={styles.photo} />
+              <Image source={{ uri: extraPhotos[0] }} style={styles.photo} />
             </TouchableOpacity>
           )}
         </View>
       )}
 
-      {/* 좋아요/댓글 */}
+      {/* 좋아요/댓글 (UI 전용) */}
       <View style={styles.actionRow}>
         {/* TODO: toggle like */}
         <TouchableOpacity style={styles.actionItem} hitSlop={8}>
           <Text style={styles.actionIcon}>♡</Text>
-          <Text style={styles.actionCount}>{diary.likes}</Text>
+          <Text style={styles.actionCount}>{likeCount ?? 0}</Text>
         </TouchableOpacity>
         {/* TODO: open comments */}
         <TouchableOpacity style={styles.actionItem} hitSlop={8}>
           <Text style={styles.actionIcon}>💬</Text>
-          <Text style={styles.actionCount}>{diary.comments > 0 ? `글${diary.comments}` : '0'}</Text>
+          <Text style={styles.actionCount}>{(commentCount ?? 0) > 0 ? `글${commentCount}` : '0'}</Text>
         </TouchableOpacity>
         {/* TODO: bookmark */}
         <TouchableOpacity hitSlop={8}>
