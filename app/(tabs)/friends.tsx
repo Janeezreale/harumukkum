@@ -1,1 +1,5 @@
-export { default } from "@/src/screens/FriendsScreen";
+import FriendsScreen from "../../src/screens/FriendsScreen";
+
+export default function FriendsPage() {
+  return <FriendsScreen />;
+}
