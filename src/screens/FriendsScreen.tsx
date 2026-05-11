@@ -127,7 +127,7 @@ export default function FriendsScreen() {
                   hasWrittenToday={friend.hasWrittenToday}
                   canPoke={friend.canPoke}
                   onPoke={() => handlePoke(friend.id)}
-                  onPress={() => handlePressFriend(friend)}//m
+                  onPress={() => handlePressFriend(friend)}
                 />
               </View>
             ))
