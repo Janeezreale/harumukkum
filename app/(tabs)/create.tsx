@@ -1,1 +1,5 @@
-export { default } from "@/src/screens/DiaryCreateScreen";
+import DiaryCreateScreen from "../../src/screens/DiaryCreateScreen";
+
+export default function CreatePage() {
+  return <DiaryCreateScreen />;
+}
