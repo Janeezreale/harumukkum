@@ -25,7 +25,8 @@ const MOCK_FRIENDS: Friend[] = [
     id: "1",
     name: "지민",
     profileImage: "https://via.placeholder.com/150",
-    lastDiarySnippet: "오늘은 친구들과 프로젝트 회의를 하면서 앱 구조를 정리했다.",
+    lastDiarySnippet:
+      "오늘은 친구들과 프로젝트 회의를 하면서 앱 구조를 정리했다.",
     emotion: "😊",
     hasWrittenToday: true,
     canPoke: false,
@@ -58,13 +59,9 @@ const MOCK_FRIENDS: Friend[] = [
 export default function FriendsScreen() {
   const [friends, setFriends] = useState<Friend[]>(MOCK_FRIENDS);
 
-  const notWrittenFriends = friends.filter(
-    (friend) => !friend.hasWrittenToday
-  );
+  const notWrittenFriends = friends.filter((friend) => !friend.hasWrittenToday);
 
-  const writtenFriends = friends.filter(
-    (friend) => friend.hasWrittenToday
-  );
+  const writtenFriends = friends.filter((friend) => friend.hasWrittenToday);
 
   const handlePoke = (friendId: string) => {
     setFriends((prevFriends) =>
@@ -74,8 +71,8 @@ export default function FriendsScreen() {
               ...friend,
               canPoke: false,
             }
-          : friend
-      )
+          : friend,
+      ),
     );
   };
 
@@ -83,15 +80,12 @@ export default function FriendsScreen() {
     if (friend.hasWrittenToday) {
       Alert.alert(
         `${friend.name}님의 일기`,
-        friend.lastDiarySnippet || "오늘 작성한 일기가 있어요."
+        friend.lastDiarySnippet || "오늘 작성한 일기가 있어요.",
       );
       return;
     }
 
-    Alert.alert(
-      `${friend.name}님`,
-      "아직 오늘의 일기를 작성하지 않았어요."
-    );
+    Alert.alert(`${friend.name}님`, "아직 오늘의 일기를 작성하지 않았어요.");
   };
 
   return (

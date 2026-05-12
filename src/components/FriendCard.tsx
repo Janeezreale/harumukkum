@@ -1,5 +1,12 @@
-import React from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ImageSourcePropType,
+} from "react-native";
 import { Card } from "./Card";
 import { PokeButton } from "./PokeButton";
 import { colors } from "../constants/colors";
@@ -15,6 +22,9 @@ interface FriendCardProps {
   onPress: () => void;
 }
 
+// 기본 프로필 이미지 설정 (로컬 assets 사용)
+const DEFAULT_PROFILE = require("../../assets/images/profile.png");
+
 export const FriendCard = ({
   name,
   profileImage,
@@ -25,6 +35,14 @@ export const FriendCard = ({
   onPoke,
   onPress,
 }: FriendCardProps) => {
+  // 이미지 로딩 실패 상태 관리
+  const [profileImageError, setProfileImageError] = useState(false);
+
+  const profileSource: ImageSourcePropType =
+    profileImageError || !profileImage
+      ? DEFAULT_PROFILE
+      : { uri: profileImage };
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -39,10 +57,9 @@ export const FriendCard = ({
           {/* 1. 왼쪽: 프로필 영역 */}
           <View style={styles.profileWrapper}>
             <Image
-              source={{
-                uri: profileImage || "https://via.placeholder.com/150",
-              }}
+              source={profileSource}
               style={styles.profilePic}
+              onError={() => setProfileImageError(true)} // 이미지 로딩 실패 시 에러 상태 설정
               accessibilityLabel={`${name}님의 프로필 사진`} // 2. 이미지 접근성
             />
             <View style={styles.statusBadge}>
