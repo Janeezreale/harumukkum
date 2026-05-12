@@ -13,7 +13,6 @@ interface CardProps {
 
 export const Card = ({ children, style, padding = 20 }: CardProps) => {
   return (
-    // 3. 이제 여기서 빨간 줄이 사라질 거예요!
     <View style={[styles.card, { padding }, style]}>
       {children}
     </View>

@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   primary: {
     backgroundColor: "#FF6B9D",
     // iOS 그림자
-    shadowColor: "#FF6B9D",
+    shadowColor: "#e4cfd6",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
