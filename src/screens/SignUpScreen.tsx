@@ -7,21 +7,61 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/colors';
+import { signUp } from '../api/auth';
+import { useAuthStore } from '../store/authStore';
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const setAuth = useAuthStore((state) => state.setAuth);
   const [id, setId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSignUp() {
-    // TODO: replace with api/auth.signUp
-    router.replace('/(tabs)');
+  async function handleSignUp() {
+    if (isSubmitting) return;
+
+    const username = id.trim();
+    const trimmedEmail = email.trim();
+
+    if (!username || !trimmedEmail || !password) {
+      setErrorMessage('아이디, 이메일, 비밀번호를 모두 입력해 주세요.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMessage('비밀번호는 6자 이상 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setErrorMessage('');
+
+      const auth = await signUp({
+        email: trimmedEmail,
+        password,
+        username,
+        nickname: username,
+      });
+
+      setAuth(auth);
+      router.replace('/(tabs)');
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : '회원가입 중 문제가 발생했습니다.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -33,12 +73,6 @@ export default function SignUpScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>회원가입</Text>
-          <TouchableOpacity
-            style={styles.headerRight}
-            hitSlop={8}
-          >
-            <Ionicons name="person-outline" size={22} color={colors.black} />
-          </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
@@ -81,12 +115,21 @@ export default function SignUpScreen() {
             </View>
 
             <TouchableOpacity
-              style={styles.signUpButton}
+              style={[styles.signUpButton, isSubmitting && styles.disabledButton]}
               onPress={handleSignUp}
               activeOpacity={0.85}
+              disabled={isSubmitting}
             >
-              <Text style={styles.signUpButtonText}>Sign In</Text>
+              {isSubmitting ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.signUpButtonText}>Sign Up</Text>
+              )}
             </TouchableOpacity>
+
+            {errorMessage ? (
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            ) : null}
 
             <TouchableOpacity onPress={() => router.back()}>
               <Text style={styles.loginLink}>이미 계정이 있으신가요? 로그인하기</Text>
@@ -116,10 +159,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.black,
-  },
-  headerRight: {
-    position: 'absolute',
-    right: 20,
   },
   content: {
     flex: 1,
@@ -166,6 +205,14 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  errorText: {
+    color: colors.negative,
+    fontSize: 13,
+    lineHeight: 18,
   },
   loginLink: {
     fontSize: 14,

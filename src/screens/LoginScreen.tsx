@@ -7,20 +7,48 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/colors';
+import { signIn } from '../api/auth';
+import { useAuthStore } from '../store/authStore';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const setAuth = useAuthStore((state) => state.setAuth);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleLogin() {
-    // TODO: replace with api/auth.signIn
-    router.replace('/(tabs)');
+  async function handleLogin() {
+    if (isSubmitting) return;
+
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail || !password) {
+      setErrorMessage('이메일과 비밀번호를 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setErrorMessage('');
+
+      const auth = await signIn(trimmedEmail, password);
+      setAuth(auth);
+      router.replace('/(tabs)');
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : '로그인 중 문제가 발생했습니다.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -32,9 +60,6 @@ export default function LoginScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>로그인</Text>
-          <TouchableOpacity hitSlop={8}>
-            <Ionicons name="person-outline" size={22} color={colors.black} />
-          </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
@@ -66,12 +91,21 @@ export default function LoginScreen() {
             </View>
 
             <TouchableOpacity
-              style={styles.loginButton}
+              style={[styles.loginButton, isSubmitting && styles.disabledButton]}
               onPress={handleLogin}
               activeOpacity={0.85}
+              disabled={isSubmitting}
             >
-              <Text style={styles.loginButtonText}>Login</Text>
+              {isSubmitting ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.loginButtonText}>Login</Text>
+              )}
             </TouchableOpacity>
+
+            {errorMessage ? (
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            ) : null}
 
             <TouchableOpacity onPress={() => router.push('/auth/signup' as any)}>
               <Text style={styles.signupLink}>회원가입</Text>
@@ -147,6 +181,14 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  errorText: {
+    color: colors.negative,
+    fontSize: 13,
+    lineHeight: 18,
   },
   signupLink: {
     fontSize: 14,

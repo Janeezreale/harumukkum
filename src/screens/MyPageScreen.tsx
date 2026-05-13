@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { colors } from "../constants/colors";
 
 // Mock Data for demonstration
@@ -42,6 +43,8 @@ const mockFriends = [
 ];
 
 export default function MyPageScreen() {
+  const router = useRouter();
+
   const handleAcceptRequest = (requestId: string) => {
     console.log(`친구 요청 수락: ${requestId}`);
     // 실제 API 연동 로직 추가 예정
@@ -55,6 +58,9 @@ export default function MyPageScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="chevron-back" size={24} color={colors.black} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>마이페이지</Text>
       </View>
 
@@ -123,16 +129,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.grayLight,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
     alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
+    flex: 1,
     fontSize: 18,
     fontWeight: "700",
     color: colors.black,
+    textAlign: "center",
+    marginRight: 40,
   },
   section: {
     paddingHorizontal: 20,
