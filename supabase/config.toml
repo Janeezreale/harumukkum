@@ -1,0 +1,44 @@
+
+[functions.generate-diary]
+enabled = true
+verify_jwt = true
+import_map = "./functions/generate-diary/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/generate-diary/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/generate-diary/*.html" ]
+
+[functions.generate-weekly-diary]
+enabled = true
+verify_jwt = true
+import_map = "./functions/generate-weekly-diary/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/generate-weekly-diary/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/generate-weekly-diary/*.html" ]
+
+[functions.generate-poster]
+enabled = true
+verify_jwt = true
+import_map = "./functions/generate-poster/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/generate-poster/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/generate-poster/*.html" ]
+
+[functions.poke-friend]
+enabled = true
+verify_jwt = true
+import_map = "./functions/poke-friend/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/poke-friend/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/poke-friend/*.html" ]
