@@ -25,12 +25,61 @@ type StepKey = keyof DiaryAnswer;
 
 type Step =
   | { key: 'emotion'; question: string; type: 'emotion' }
-  | { key: 'what_text'; question: string; type: 'text'; placeholder: string; example: string }
-  | { key: 'who_text'; question: string; type: 'chips'; options: string[] }
-  | { key: 'why_text'; question: string; type: 'text'; placeholder: string; example: string };
+  | {
+      key: 'when_text';
+      question: string;
+      type: 'text';
+      placeholder: string;
+      example: string;
+    }
+  | {
+      key: 'where_text';
+      question: string;
+      type: 'text';
+      placeholder: string;
+      example: string;
+    }
+  | {
+      key: 'what_text';
+      question: string;
+      type: 'text';
+      placeholder: string;
+      example: string;
+    }
+  | {
+      key: 'who_text';
+      question: string;
+      type: 'chips';
+      options: string[];
+    }
+  | {
+      key: 'why_text';
+      question: string;
+      type: 'text';
+      placeholder: string;
+      example: string;
+    };
 
 const STEPS: Step[] = [
-  { key: 'emotion', question: '오늘 당신의 기분은 어땠나요?', type: 'emotion' },
+  {
+    key: 'emotion',
+    question: '오늘 당신의 기분은 어땠나요?',
+    type: 'emotion',
+  },
+  {
+    key: 'when_text',
+    question: '언제 일어난 일인가요?',
+    type: 'text',
+    placeholder: '입력해주세요.',
+    example: '예시: 오늘 오후, 어제 저녁, 5월 13일 점심시간',
+  },
+  {
+    key: 'where_text',
+    question: '어디에서 있었던 일인가요?',
+    type: 'text',
+    placeholder: '입력해주세요.',
+    example: '예시: 학교, 카페, 집, 회의실, 한강',
+  },
   {
     key: 'what_text',
     question: '어떤 일들이 있었어요?',
@@ -59,12 +108,18 @@ function getErrorMessage(error: unknown) {
 
 export default function DiaryCreateScreen() {
   const router = useRouter();
-  const { draftAnswer, setDraftAnswer, draftPhotoUri, resetDraft, selectedDate, setLastGeneratedDiary } =
+  const { draftAnswer, 
+         setDraftAnswer, 
+         draftPhotoUri, 
+         resetDraft, 
+         selectedDate, 
+         setLastGeneratedDiary } =
     useDiaryStore();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [textInput, setTextInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
   const scrollRef = useRef<ScrollView>(null);
 
   const activeStep = STEPS[currentStep] as Step | undefined;
@@ -73,14 +128,21 @@ export default function DiaryCreateScreen() {
   function handleAnswer(key: StepKey, value: string) {
     setDraftAnswer({ [key]: value } as Partial<DiaryAnswer>);
     setTextInput('');
-    setCurrentStep((s) => s + 1);
+    setCurrentStep((step) => step + 1);
   }
 
   function handleTextSubmit() {
-    if (!activeStep || activeStep.type !== 'text') return;
-    const val = textInput.trim();
-    if (!val) return;
-    handleAnswer(activeStep.key, val);
+    if (!activeStep || activeStep.type !== 'text') {
+      return;
+    }
+
+    const value = textInput.trim();
+
+    if (!value) {
+      return;
+    }
+
+    handleAnswer(activeStep.key, value);
   }
 
   async function handleGenerate() {
@@ -90,11 +152,14 @@ export default function DiaryCreateScreen() {
       emotion: draftAnswer.emotion,
       emotionReason: draftAnswer.why_text,
     });
+
     if (!result.isValid) {
       Alert.alert('입력 확인', result.errors[0]);
       return;
     }
+
     setIsLoading(true);
+
     try {
       let imageUrls: string[] = [];
 
@@ -133,12 +198,13 @@ export default function DiaryCreateScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={90}
       >
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={22} color={colors.black} />
           </TouchableOpacity>
+
           <Text style={styles.headerTitle}>오늘의 하루 조각</Text>
+
           <TouchableOpacity hitSlop={8}>
             <Ionicons name="diamond-outline" size={20} color={colors.black} />
           </TouchableOpacity>
@@ -151,12 +217,10 @@ export default function DiaryCreateScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Slogan */}
           <Text style={styles.slogan}>
             간단한 질문에 답해주시면{'\n'}AI가 당신의 하루를 정리해드려요.
           </Text>
 
-          {/* Question Card */}
           {activeStep && (
             <View style={styles.questionCard}>
               <View style={styles.questionInner}>
@@ -165,22 +229,22 @@ export default function DiaryCreateScreen() {
             </View>
           )}
 
-          {/* Emotion Selection */}
           {activeStep?.type === 'emotion' && (
             <View style={styles.emotionRow}>
-              {emotions.slice(0, 5).map((opt) => (
+              {emotions.slice(0, 5).map((emotionOption) => (
                 <TouchableOpacity
-                  key={opt.id}
-                  onPress={() => handleAnswer('emotion', opt.id)}
+                  key={emotionOption.id}
+                  onPress={() => handleAnswer('emotion', emotionOption.id)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.emotionEmoji}>{opt.emoji}</Text>
+                  <Text style={styles.emotionEmoji}>
+                    {emotionOption.emoji}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
           )}
 
-          {/* Text Input Area */}
           {activeStep?.type === 'text' && (
             <View style={styles.textArea}>
               <TextInput
@@ -192,33 +256,38 @@ export default function DiaryCreateScreen() {
                 returnKeyType="done"
                 multiline
               />
+
               <Text style={styles.exampleText}>{activeStep.example}</Text>
             </View>
           )}
 
-          {/* Chip Selection */}
           {activeStep?.type === 'chips' && (
             <View style={styles.chipArea}>
               <View style={styles.chipRow}>
-                {activeStep.options.map((opt) => (
+                {activeStep.options.map((option) => (
                   <TouchableOpacity
-                    key={opt}
+                    key={option}
                     style={styles.chipBtn}
                     onPress={() => {
-                      if (opt === '기타') return;
-                      handleAnswer(activeStep.key, opt);
+                      if (option === '기타') {
+                        return;
+                      }
+
+                      handleAnswer(activeStep.key, option);
                     }}
                     activeOpacity={0.75}
                   >
-                    <Text style={styles.chipBtnText}>{opt}</Text>
+                    <Text style={styles.chipBtnText}>{option}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
+
               {activeStep.options.includes('기타') && (
                 <View style={styles.chipInputRow}>
                   <View style={styles.chipBtn}>
                     <Text style={styles.chipBtnText}>기타</Text>
                   </View>
+
                   <TextInput
                     style={styles.chipTextInput}
                     placeholder="입력해주세요"
@@ -226,7 +295,9 @@ export default function DiaryCreateScreen() {
                     value={textInput}
                     onChangeText={setTextInput}
                     onSubmitEditing={() => {
-                      if (textInput.trim()) handleAnswer(activeStep.key, textInput.trim());
+                      if (textInput.trim()) {
+                        handleAnswer(activeStep.key, textInput.trim());
+                      }
                     }}
                   />
                 </View>
@@ -234,21 +305,30 @@ export default function DiaryCreateScreen() {
             </View>
           )}
 
-          {/* All done state */}
           {isAllDone && (
             <View style={styles.doneCard}>
-              <Ionicons name="checkmark-circle" size={48} color={colors.primary} />
+              <Ionicons
+                name="checkmark-circle"
+                size={48}
+                color={colors.primary}
+              />
+
               <Text style={styles.doneText}>모든 질문에 답해주셨어요!</Text>
-              <Text style={styles.doneSubtext}>AI가 당신의 하루를 엮어드릴게요.</Text>
+
+              <Text style={styles.doneSubtext}>
+                AI가 당신의 하루를 엮어드릴게요.
+              </Text>
             </View>
           )}
         </ScrollView>
 
-        {/* Bottom CTA */}
         <View style={styles.bottomBar}>
           {activeStep?.type === 'text' ? (
             <TouchableOpacity
-              style={[styles.generateBtn, !textInput.trim() && styles.generateBtnDisabled]}
+              style={[
+                styles.generateBtn,
+                !textInput.trim() && styles.generateBtnDisabled,
+              ]}
               onPress={handleTextSubmit}
               disabled={!textInput.trim()}
               activeOpacity={0.85}
@@ -257,7 +337,10 @@ export default function DiaryCreateScreen() {
             </TouchableOpacity>
           ) : isAllDone ? (
             <TouchableOpacity
-              style={[styles.generateBtn, isLoading && styles.generateBtnDisabled]}
+              style={[
+                styles.generateBtn,
+                isLoading && styles.generateBtnDisabled,
+              ]}
               onPress={handleGenerate}
               disabled={isLoading}
               activeOpacity={0.85}
@@ -265,7 +348,9 @@ export default function DiaryCreateScreen() {
               {isLoading ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
-                <Text style={styles.generateBtnText}>AI 일기 생성하기  ✦</Text>
+                <Text style={styles.generateBtnText}>
+                  AI 일기 생성하기 ✦
+                </Text>
               )}
             </TouchableOpacity>
           ) : null}
@@ -276,10 +361,13 @@ export default function DiaryCreateScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.background },
-
-  flex: { flex: 1 },
-
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  flex: {
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -287,15 +375,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: colors.black },
-
-  scroll: { flex: 1 },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: colors.black,
+  },
+  scroll: {
+    flex: 1,
+  },
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 24,
     gap: 20,
   },
-
   slogan: {
     fontSize: 16,
     color: colors.gray,
@@ -304,18 +396,18 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
   },
-
-  // Question card
   questionCard: {
     backgroundColor: colors.white,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(196, 199, 199, 0.2)',
+    borderRadius: 16,
+    padding: 4,
+    shadowColor: colors.black,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   questionInner: {
     backgroundColor: 'rgba(97, 75, 190, 0.06)',
@@ -331,8 +423,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-
-  // Emotion row
   emotionRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -340,9 +430,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingVertical: 8,
   },
-  emotionEmoji: { fontSize: 32 },
-
-  // Text input area
+  emotionEmoji: {
+    fontSize: 32,
+  },
   textArea: {
     gap: 8,
   },
@@ -367,8 +457,6 @@ const styles = StyleSheet.create({
     color: colors.placeholder,
     paddingHorizontal: 4,
   },
-
-  // Chips
   chipArea: {
     gap: 12,
   },
@@ -405,8 +493,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.black,
   },
-
-  // Done state
   doneCard: {
     alignItems: 'center',
     gap: 8,
@@ -421,8 +507,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.gray,
   },
-
-  // Bottom bar
   bottomBar: {
     paddingHorizontal: 20,
     paddingVertical: 14,
@@ -442,6 +526,12 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  generateBtnDisabled: { opacity: 0.4 },
-  generateBtnText: { color: colors.white, fontSize: 16, fontWeight: '600' },
+  generateBtnDisabled: {
+    opacity: 0.4,
+  },
+  generateBtnText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '700',
+  },
 });
