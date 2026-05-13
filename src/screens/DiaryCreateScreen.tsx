@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../constants/colors';
 import { emotions } from '../constants/emotions';
@@ -27,7 +28,7 @@ async function mockCreateDiary(input: DiaryCreateInput) {
   return {
     id: 'mock-' + Date.now(),
     ...input,
-    body: 'AI가 생성한 본문: 오늘 하루도 수고했어요. 감정의 흐름을 따라가며 당신만의 이야기가 완성되었습니다.',
+    body: 'AI가 생성한 본문: 오늘 하루도 수고했어요.',
   };
 }
 
@@ -35,30 +36,33 @@ type StepKey = keyof DiaryAnswer;
 
 type Step =
   | { key: 'emotion'; question: string; type: 'emotion' }
-  | { key: 'what_text'; question: string; type: 'text'; placeholder: string }
+  | { key: 'what_text'; question: string; type: 'text'; placeholder: string; example: string }
   | { key: 'who_text'; question: string; type: 'chips'; options: string[] }
-  | { key: 'when_text'; question: string; type: 'text'; placeholder: string }
-  | { key: 'where_text'; question: string; type: 'text'; placeholder: string }
-  | { key: 'why_text'; question: string; type: 'text'; placeholder: string };
+  | { key: 'why_text'; question: string; type: 'text'; placeholder: string; example: string };
 
 const STEPS: Step[] = [
   { key: 'emotion', question: '오늘 당신의 기분은 어땠나요?', type: 'emotion' },
-  { key: 'what_text', question: '오늘 무슨 일들이 있었나요?', type: 'text', placeholder: '예: 카페에서 공부를 했어요' },
-  { key: 'who_text', question: '누구와 함께 있었나요?', type: 'chips', options: ['친구', '가족', '연인', '혼자'] },
-  { key: 'when_text', question: '언제였나요?', type: 'text', placeholder: '예: 오전, 저녁' },
-  { key: 'where_text', question: '어디서였나요?', type: 'text', placeholder: '예: 카페, 집' },
-  { key: 'why_text', question: '왜 그런 하루를 보냈나요?', type: 'text', placeholder: '예: 시험 준비가 필요했어요' },
+  {
+    key: 'what_text',
+    question: '어떤 일들이 있었어요?',
+    type: 'text',
+    placeholder: '입력해주세요.',
+    example: '예시: 카페에서 공부를 했어요. 한강에서 피크닉을 했어요.',
+  },
+  {
+    key: 'who_text',
+    question: '누구와 함께 하루를 보냈나요?',
+    type: 'chips',
+    options: ['친구', '가족', '연인', '혼자', '기타'],
+  },
+  {
+    key: 'why_text',
+    question: '남기고 싶은 오늘의 생각은 무엇인가요?',
+    type: 'text',
+    placeholder: '입력해주세요.',
+    example: '예시: 날씨가 좋아서 행복했던 하루. 파스타가 맛있었다.',
+  },
 ];
-
-function answerLabel(step: Step, draft: Partial<DiaryAnswer>): string {
-  const value = draft[step.key];
-  if (!value) return '';
-  if (step.key === 'emotion') {
-    const opt = emotions.find((e) => e.id === value);
-    return opt ? `${opt.emoji} ${opt.label}` : String(value);
-  }
-  return String(value);
-}
 
 export default function DiaryCreateScreen() {
   const router = useRouter();
@@ -70,19 +74,13 @@ export default function DiaryCreateScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
-  const completedSteps = STEPS.slice(0, currentStep);
   const activeStep = STEPS[currentStep] as Step | undefined;
   const isAllDone = currentStep >= STEPS.length;
-
-  function scrollToBottom() {
-    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
-  }
 
   function handleAnswer(key: StepKey, value: string) {
     setDraftAnswer({ [key]: value } as Partial<DiaryAnswer>);
     setTextInput('');
     setCurrentStep((s) => s + 1);
-    scrollToBottom();
   }
 
   function handleTextSubmit() {
@@ -90,21 +88,6 @@ export default function DiaryCreateScreen() {
     const val = textInput.trim();
     if (!val) return;
     handleAnswer(activeStep.key, val);
-  }
-
-  async function handlePickPhoto() {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('권한 필요', '사진 접근 권한이 필요합니다.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setDraftPhoto(result.assets[0].uri);
-    }
   }
 
   async function handleGenerate() {
@@ -153,13 +136,14 @@ export default function DiaryCreateScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
-            <Text style={styles.headerBack}>←</Text>
+            <Ionicons name="arrow-back" size={22} color={colors.black} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>오늘의 하루 조각</Text>
-          <View style={{ width: 24 }} />
+          <TouchableOpacity hitSlop={8}>
+            <Ionicons name="diamond-outline" size={20} color={colors.black} />
+          </TouchableOpacity>
         </View>
 
-        {/* Chat scroll */}
         <ScrollView
           ref={scrollRef}
           style={styles.scroll}
@@ -167,48 +151,26 @@ export default function DiaryCreateScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* 슬로건 */}
+          {/* Slogan */}
           <Text style={styles.slogan}>
             간단한 질문에 답해주시면{'\n'}AI가 당신의 하루를 정리해드려요.
           </Text>
 
-          {/* 완료된 Q&A 말풍선 */}
-          {completedSteps.map((step) => {
-            const answered = answerLabel(step, draftAnswer);
-            return (
-              <View key={step.key}>
-                {/* 질문 (왼쪽) */}
-                <View style={styles.bubbleRowLeft}>
-                  <View style={styles.aiBubble}>
-                    <Text style={styles.aiBubbleText}>{step.question}</Text>
-                  </View>
-                </View>
-                {/* 답변 (오른쪽) */}
-                <View style={styles.bubbleRowRight}>
-                  <View style={styles.userBubble}>
-                    <Text style={styles.userBubbleText}>{answered}</Text>
-                  </View>
-                </View>
-              </View>
-            );
-          })}
-
-          {/* 현재 질문 */}
+          {/* Question Card */}
           {activeStep && (
-            <View style={styles.bubbleRowLeft}>
-              <View style={styles.aiBubble}>
-                <Text style={styles.aiBubbleText}>{activeStep.question}</Text>
+            <View style={styles.questionCard}>
+              <View style={styles.questionInner}>
+                <Text style={styles.questionText}>{activeStep.question}</Text>
               </View>
             </View>
           )}
 
-          {/* 감정 이모지 선택 (Q1) — 대표 5개 표시 */}
+          {/* Emotion Selection */}
           {activeStep?.type === 'emotion' && (
             <View style={styles.emotionRow}>
               {emotions.slice(0, 5).map((opt) => (
                 <TouchableOpacity
                   key={opt.id}
-                  style={styles.emotionBtn}
                   onPress={() => handleAnswer('emotion', opt.id)}
                   activeOpacity={0.7}
                 >
@@ -218,67 +180,84 @@ export default function DiaryCreateScreen() {
             </View>
           )}
 
-          {/* 칩 선택 (Q3: 누구와) */}
-          {activeStep?.type === 'chips' && (
-            <View style={styles.chipRow}>
-              {activeStep.options.map((opt) => (
-                <TouchableOpacity
-                  key={opt}
-                  style={styles.chipBtn}
-                  onPress={() => handleAnswer(activeStep.key, opt)}
-                  activeOpacity={0.75}
-                >
-                  <Text style={styles.chipBtnText}>{opt}</Text>
-                </TouchableOpacity>
-              ))}
+          {/* Text Input Area */}
+          {activeStep?.type === 'text' && (
+            <View style={styles.textArea}>
+              <TextInput
+                style={styles.textInput}
+                placeholder={activeStep.placeholder}
+                placeholderTextColor={colors.gray}
+                value={textInput}
+                onChangeText={setTextInput}
+                returnKeyType="done"
+                multiline
+              />
+              <Text style={styles.exampleText}>{activeStep.example}</Text>
             </View>
           )}
 
-          {/* 모든 단계 완료 → 사진 업로드 */}
+          {/* Chip Selection */}
+          {activeStep?.type === 'chips' && (
+            <View style={styles.chipArea}>
+              <View style={styles.chipRow}>
+                {activeStep.options.map((opt) => (
+                  <TouchableOpacity
+                    key={opt}
+                    style={styles.chipBtn}
+                    onPress={() => {
+                      if (opt === '기타') return;
+                      handleAnswer(activeStep.key, opt);
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={styles.chipBtnText}>{opt}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {activeStep.options.includes('기타') && (
+                <View style={styles.chipInputRow}>
+                  <View style={styles.chipBtn}>
+                    <Text style={styles.chipBtnText}>기타</Text>
+                  </View>
+                  <TextInput
+                    style={styles.chipTextInput}
+                    placeholder="입력해주세요"
+                    placeholderTextColor={colors.gray}
+                    value={textInput}
+                    onChangeText={setTextInput}
+                    onSubmitEditing={() => {
+                      if (textInput.trim()) handleAnswer(activeStep.key, textInput.trim());
+                    }}
+                  />
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* All done state */}
           {isAllDone && (
-            <View style={styles.photoSection}>
-              <TouchableOpacity style={styles.photoPickBtn} onPress={handlePickPhoto} activeOpacity={0.8}>
-                {draftPhotoUri ? (
-                  <Image source={{ uri: draftPhotoUri }} style={styles.photoPreview} />
-                ) : (
-                  <>
-                    <Text style={styles.photoPickIcon}>📷</Text>
-                    <Text style={styles.photoPickText}>사진 추가 (선택)</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+            <View style={styles.doneCard}>
+              <Ionicons name="checkmark-circle" size={48} color={colors.primary} />
+              <Text style={styles.doneText}>모든 질문에 답해주셨어요!</Text>
+              <Text style={styles.doneSubtext}>AI가 당신의 하루를 엮어드릴게요.</Text>
             </View>
           )}
         </ScrollView>
 
-        {/* 텍스트 입력바 (text 단계일 때) */}
-        {activeStep?.type === 'text' && (
-          <View style={styles.inputBar}>
-            <TextInput
-              style={styles.textInput}
-              placeholder={activeStep.placeholder}
-              placeholderTextColor={colors.gray}
-              value={textInput}
-              onChangeText={setTextInput}
-              onSubmitEditing={handleTextSubmit}
-              returnKeyType="send"
-              multiline
-            />
+        {/* Bottom CTA */}
+        <View style={styles.bottomBar}>
+          {activeStep?.type === 'text' ? (
             <TouchableOpacity
-              style={[styles.sendBtn, !textInput.trim() && styles.sendBtnDisabled]}
+              style={[styles.generateBtn, !textInput.trim() && styles.generateBtnDisabled]}
               onPress={handleTextSubmit}
               disabled={!textInput.trim()}
+              activeOpacity={0.85}
             >
-              <Text style={styles.sendBtnIcon}>↑</Text>
+              <Text style={styles.generateBtnText}>다음</Text>
             </TouchableOpacity>
-          </View>
-        )}
-
-        {/* 하단 고정: AI 일기 생성 버튼 */}
-        {isAllDone && (
-          <View style={styles.bottomBar}>
+          ) : isAllDone ? (
             <TouchableOpacity
-              style={[styles.generateBtn, isLoading && styles.generateBtnLoading]}
+              style={[styles.generateBtn, isLoading && styles.generateBtnDisabled]}
               onPress={handleGenerate}
               disabled={isLoading}
               activeOpacity={0.85}
@@ -286,11 +265,11 @@ export default function DiaryCreateScreen() {
               {isLoading ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
-                <Text style={styles.generateBtnText}>AI 일기 생성하기 ✦</Text>
+                <Text style={styles.generateBtnText}>AI 일기 생성하기  ✦</Text>
               )}
             </TouchableOpacity>
-          </View>
-        )}
+          ) : null}
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -300,7 +279,6 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
 
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -308,155 +286,138 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
-  headerBack: { fontSize: 20, color: colors.black },
-  headerTitle: { fontSize: 16, fontWeight: '600', color: colors.black },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: colors.black },
 
-  // Scroll
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 24,
-    gap: 12,
+    gap: 20,
   },
 
   slogan: {
-    fontSize: 13,
+    fontSize: 15,
     color: colors.gray,
-    lineHeight: 20,
+    lineHeight: 24,
     textAlign: 'center',
+    marginTop: 16,
     marginBottom: 8,
-    marginTop: 4,
   },
 
-  // Chat bubbles
-  bubbleRowLeft: { flexDirection: 'row', justifyContent: 'flex-start' },
-  bubbleRowRight: { flexDirection: 'row', justifyContent: 'flex-end' },
-  aiBubble: {
+  // Question card (matches design's centered card style)
+  questionCard: {
     backgroundColor: colors.white,
-    borderRadius: 18,
-    borderBottomLeftRadius: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    maxWidth: '80%',
+    borderRadius: 16,
+    padding: 4,
     shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  aiBubbleText: { fontSize: 14, color: colors.black, lineHeight: 20 },
-  userBubble: {
-    backgroundColor: colors.black,
-    borderRadius: 18,
-    borderBottomRightRadius: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    maxWidth: '80%',
+  questionInner: {
+    backgroundColor: colors.grayLight,
+    borderRadius: 12,
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    alignItems: 'center',
   },
-  userBubbleText: { fontSize: 14, color: colors.white, lineHeight: 20 },
+  questionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.black,
+    textAlign: 'center',
+  },
 
   // Emotion row
   emotionRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 12,
+    gap: 16,
     marginTop: 4,
   },
-  emotionBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  emotionEmoji: { fontSize: 26 },
+  emotionEmoji: { fontSize: 32 },
 
-  // Chip row
+  // Text input area
+  textArea: {
+    gap: 8,
+  },
+  textInput: {
+    backgroundColor: colors.grayLight,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: colors.black,
+    minHeight: 48,
+  },
+  exampleText: {
+    fontSize: 13,
+    color: colors.gray,
+    paddingHorizontal: 4,
+  },
+
+  // Chips
+  chipArea: {
+    gap: 12,
+  },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginTop: 4,
   },
   chipBtn: {
     backgroundColor: colors.white,
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: colors.grayBorder,
   },
-  chipBtnText: { fontSize: 14, color: colors.black },
-
-  // Photo section
-  photoSection: { marginTop: 8 },
-  photoPickBtn: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    borderStyle: 'dashed',
-    height: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  photoPreview: { width: '100%', height: '100%' },
-  photoPickIcon: { fontSize: 28 },
-  photoPickText: { fontSize: 13, color: colors.gray, marginTop: 4 },
-
-  // Input bar
-  inputBar: {
+  chipBtnText: { fontSize: 15, color: colors.black, fontWeight: '500' },
+  chipInputRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    backgroundColor: colors.white,
-    gap: 10,
+    alignItems: 'center',
+    gap: 8,
   },
-  textInput: {
+  chipTextInput: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 20,
-    paddingHorizontal: 16,
+    backgroundColor: colors.grayLight,
+    borderRadius: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 14,
     color: colors.black,
-    maxHeight: 100,
   },
-  sendBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.black,
-    justifyContent: 'center',
+
+  // Done state
+  doneCard: {
     alignItems: 'center',
+    gap: 8,
+    paddingVertical: 32,
   },
-  sendBtnDisabled: { backgroundColor: '#D1D5DB' },
-  sendBtnIcon: { color: colors.white, fontSize: 18, fontWeight: '700' },
+  doneText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.black,
+  },
+  doneSubtext: {
+    fontSize: 14,
+    color: colors.gray,
+  },
 
   // Bottom bar
   bottomBar: {
     paddingHorizontal: 20,
     paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
     backgroundColor: colors.background,
   },
   generateBtn: {
     backgroundColor: colors.black,
     borderRadius: 14,
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: 'center',
   },
-  generateBtnLoading: { opacity: 0.7 },
+  generateBtnDisabled: { opacity: 0.4 },
   generateBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
 });
