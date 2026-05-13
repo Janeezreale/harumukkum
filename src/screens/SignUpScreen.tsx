@@ -13,13 +13,14 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/colors';
 
-export default function LoginScreen() {
+export default function SignUpScreen() {
   const router = useRouter();
+  const [id, setId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  function handleLogin() {
-    // TODO: replace with api/auth.signIn
+  function handleSignUp() {
+    // TODO: replace with api/auth.signUp
     router.replace('/(tabs)');
   }
 
@@ -31,15 +32,29 @@ export default function LoginScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>로그인</Text>
-          <TouchableOpacity hitSlop={8}>
+          <Text style={styles.headerTitle}>회원가입</Text>
+          <TouchableOpacity
+            style={styles.headerRight}
+            hitSlop={8}
+          >
             <Ionicons name="person-outline" size={22} color={colors.black} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
-          {/* Form Card */}
           <View style={styles.formCard}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>ID</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="아이디"
+                placeholderTextColor={colors.gray}
+                value={id}
+                onChangeText={setId}
+                autoCapitalize="none"
+              />
+            </View>
+
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Email</Text>
               <TextInput
@@ -66,15 +81,15 @@ export default function LoginScreen() {
             </View>
 
             <TouchableOpacity
-              style={styles.loginButton}
-              onPress={handleLogin}
+              style={styles.signUpButton}
+              onPress={handleSignUp}
               activeOpacity={0.85}
             >
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Text style={styles.signUpButtonText}>Sign In</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => router.push('/auth/signup')}>
-              <Text style={styles.signupLink}>회원가입</Text>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text style={styles.loginLink}>이미 계정이 있으신가요? 로그인하기</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -101,6 +116,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.black,
+  },
+  headerRight: {
+    position: 'absolute',
+    right: 20,
   },
   content: {
     flex: 1,
@@ -136,19 +155,19 @@ const styles = StyleSheet.create({
     color: colors.black,
     backgroundColor: colors.white,
   },
-  loginButton: {
+  signUpButton: {
     backgroundColor: colors.black,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 4,
   },
-  loginButtonText: {
+  signUpButtonText: {
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
-  signupLink: {
+  loginLink: {
     fontSize: 14,
     color: colors.gray,
     textDecorationLine: 'underline',

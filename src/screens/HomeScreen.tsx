@@ -8,6 +8,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/colors';
 
 // TODO: replace with api/diary.getTodayDiary
@@ -33,8 +34,8 @@ const todayFragments = [
 
 // TODO: replace with api/diary.getEmotionInsight
 const emotionInsight = {
-  title: '오늘의 감정 흐름 감지하였어요',
-  summary: '"찡찡하지만, 나쁘지 않았던 하루"',
+  title: '오늘의 감정 톤을 감지했어요',
+  summary: '"복잡하지만, 나쁘지 않았던 하루"',
 };
 
 export default function HomeScreen() {
@@ -44,12 +45,12 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity>
-          <Text style={styles.menuIcon}>☰</Text>
+        <TouchableOpacity hitSlop={8}>
+          <Ionicons name="menu" size={22} color={colors.black} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>하루묶음</Text>
-        <TouchableOpacity>
-          <Text style={styles.bellIcon}>🔔</Text>
+        <TouchableOpacity hitSlop={8}>
+          <Ionicons name="person-outline" size={22} color={colors.black} />
         </TouchableOpacity>
       </View>
 
@@ -58,17 +59,17 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 메인 카드 */}
+        {/* Main Card */}
         <View style={styles.mainCard}>
           <Text style={styles.mainSlogan}>
             오늘의 조각들을 질문으로 모아{'\n'}
             한 편의 이야기로 엮어볼까요?
           </Text>
           <Text style={styles.mainSubtitle}>
-            당신의 오늘을 한 이야기로 정리해드려요.
+            당신의 오늘을 한 페이지로 정리해드릴게요.
           </Text>
 
-          {/* 키워드 칩 */}
+          {/* Keyword chips */}
           <View style={styles.chipRow}>
             {todayDiary.keywords.map((kw) => (
               <View key={kw} style={styles.chip}>
@@ -80,28 +81,26 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* CTA 버튼 */}
+          {/* CTA Button */}
           <TouchableOpacity
             style={styles.ctaButton}
             onPress={() => router.push('/create')}
             activeOpacity={0.85}
           >
-            <Text style={styles.ctaButtonText}>일기 생성하기 ✦</Text>
+            <Text style={styles.ctaButtonText}>일기 생성하기  ✦</Text>
           </TouchableOpacity>
         </View>
 
-        {/* AI 조각 섹션 */}
+        {/* AI Fragments Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>AI가 수집한 오늘의 조각들</Text>
-          {/* TODO: navigate to full fragments list */}
           <TouchableOpacity>
-            <Text style={styles.sectionLink}>전체보기 &gt;</Text>
+            <Text style={styles.sectionLink}>전체보기</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.fragmentRow}>
           {todayFragments.map((fragment) => (
-            // TODO: navigate to fragment detail
             <TouchableOpacity key={fragment.id} style={styles.fragmentCard} activeOpacity={0.9}>
               <Image
                 source={{ uri: fragment.imageUri }}
@@ -115,17 +114,16 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* AI 감정 통찰 카드 */}
-        {/* TODO: navigate to insight detail */}
+        {/* Emotion Insight Banner */}
         <TouchableOpacity style={styles.insightCard} activeOpacity={0.9}>
           <View style={styles.insightLeft}>
-            <Text style={styles.insightIcon}>💜</Text>
+            <Text style={styles.insightIcon}>😊</Text>
           </View>
           <View style={styles.insightContent}>
             <Text style={styles.insightTitle}>{emotionInsight.title}</Text>
             <Text style={styles.insightSummary}>{emotionInsight.summary}</Text>
           </View>
-          <Text style={styles.insightArrow}>&gt;</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -143,19 +141,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 14,
-    backgroundColor: colors.background,
-  },
-  menuIcon: {
-    fontSize: 20,
-    color: colors.black,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.black,
-  },
-  bellIcon: {
-    fontSize: 20,
   },
   scroll: {
     flex: 1,
@@ -165,11 +155,11 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 16,
   },
-  // 메인 카드
+  // Main card
   mainCard: {
     backgroundColor: colors.white,
     borderRadius: 20,
-    padding: 20,
+    padding: 24,
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -178,58 +168,67 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   mainSlogan: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: colors.black,
-    lineHeight: 24,
+    lineHeight: 28,
+    textAlign: 'center',
   },
   mainSubtitle: {
     fontSize: 13,
     color: colors.gray,
+    textAlign: 'center',
   },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: 8,
+    marginTop: 4,
   },
   chip: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.grayLight,
     borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   chipText: {
-    fontSize: 13,
+    fontSize: 14,
+    fontWeight: '500',
     color: colors.black,
   },
   chipAdd: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: colors.grayBorder,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   chipAddText: {
-    fontSize: 13,
+    fontSize: 16,
     color: colors.gray,
   },
   ctaButton: {
     backgroundColor: colors.black,
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 16,
     alignItems: 'center',
     marginTop: 4,
   },
   ctaButtonText: {
     color: colors.white,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
   },
-  // AI 조각 섹션
+  // AI Fragments
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 8,
   },
   sectionTitle: {
     fontSize: 15,
@@ -238,7 +237,8 @@ const styles = StyleSheet.create({
   },
   sectionLink: {
     fontSize: 13,
-    color: colors.gray,
+    color: colors.primary,
+    fontWeight: '500',
   },
   fragmentRow: {
     flexDirection: 'row',
@@ -257,8 +257,8 @@ const styles = StyleSheet.create({
   },
   fragmentImage: {
     width: '100%',
-    height: 110,
-    backgroundColor: '#E5E7EB',
+    height: 120,
+    backgroundColor: colors.grayLight,
   },
   fragmentLabel: {
     padding: 10,
@@ -269,13 +269,13 @@ const styles = StyleSheet.create({
     color: colors.gray,
   },
   fragmentLocation: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
     color: colors.black,
   },
-  // AI 감정 통찰 카드
+  // Emotion Insight
   insightCard: {
-    backgroundColor: '#F0EBFF',
+    backgroundColor: colors.primaryBg,
     borderRadius: 16,
     padding: 16,
     flexDirection: 'row',
@@ -283,15 +283,15 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   insightLeft: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#DDD6FE',
     justifyContent: 'center',
     alignItems: 'center',
   },
   insightIcon: {
-    fontSize: 16,
+    fontSize: 18,
   },
   insightContent: {
     flex: 1,
@@ -300,14 +300,11 @@ const styles = StyleSheet.create({
   insightTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#5B21B6',
+    color: colors.primaryDark,
   },
   insightSummary: {
-    fontSize: 12,
-    color: '#7C3AED',
-  },
-  insightArrow: {
-    fontSize: 14,
-    color: '#7C3AED',
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '500',
   },
 });
