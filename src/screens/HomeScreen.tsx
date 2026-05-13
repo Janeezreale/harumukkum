@@ -36,9 +36,6 @@ const todayFragments = [
   },
 ];
 
-// TODO: replace with api/diary.getKeywordChips
-const keywordChips = ["#카페", "#설렘", "#지친 하루"];
-
 // TODO: replace with api/diary.getEmotionInsight
 const emotionInsight = {
   title: "오늘의 감정 톤을 감지했어요",
@@ -57,6 +54,8 @@ export default function HomeScreen() {
         <TouchableOpacity hitSlop={8} style={styles.headerIconBtn} onPress={() => router.push("/mypage")}>
           <Ionicons name="person-outline" size={20} color={colors.text} />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>하루묶음</Text>
+        <View style={styles.headerIconBtn} />
       </View>
 
       <ScrollView
@@ -80,9 +79,6 @@ export default function HomeScreen() {
                 <Text style={styles.chipText}>{chip}</Text>
               </View>
             ))}
-            <TouchableOpacity style={styles.chipAdd} activeOpacity={0.7}>
-              <Ionicons name="add" size={16} color={colors.primary} />
-            </TouchableOpacity>
           </View>
 
           {/* CTA Button */}
@@ -234,18 +230,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: "400",
   },
-  chipAdd: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(97, 75, 190, 0.04)",
-  },
-
   // CTA Button
   ctaButton: {
     flexDirection: "row",

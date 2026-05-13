@@ -60,11 +60,9 @@ export default function CalendarScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
-          <Ionicons name="arrow-back" size={22} color={colors.black} />
-        </TouchableOpacity>
+        <View style={{ width: 22 }} />
         <Text style={styles.headerTitle}>한 달 묶음</Text>
-        <TouchableOpacity hitSlop={8}>
+        <TouchableOpacity hitSlop={8} onPress={() => router.push('/mypage' as any)}>
           <Ionicons name="person-outline" size={22} color={colors.black} />
         </TouchableOpacity>
       </View>
