@@ -9,13 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  Image,
   ActivityIndicator,
 } from 'react-native';
 import { useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../constants/colors';
 import { emotions } from '../constants/emotions';
 import { validateRequiredDiaryAnswers } from '../utils/validation';
@@ -66,7 +64,7 @@ const STEPS: Step[] = [
 
 export default function DiaryCreateScreen() {
   const router = useRouter();
-  const { draftAnswer, setDraftAnswer, draftPhotoUri, setDraftPhoto, resetDraft, selectedDate } =
+  const { draftAnswer, setDraftAnswer, draftPhotoUri, resetDraft, selectedDate } =
     useDiaryStore();
 
   const [currentStep, setCurrentStep] = useState(0);
