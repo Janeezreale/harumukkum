@@ -1,5 +1,5 @@
-import DiaryCalendarScreen from "../../src/screens/DiaryCalendarScreen";
+import CalendarScreen from "../../src/screens/CalendarScreen";
 
 export default function DiaryPage() {
-  return <DiaryCalendarScreen />;
+  return <CalendarScreen />;
 }

@@ -1,10 +1,11 @@
 import { supabase } from "./supabase";
+import type { Diary } from "../types/diary";
 
-type GenerateDiaryParams = {
+export type GenerateDiaryParams = {
   diaryDate: string;
 
-  whenText: string;
-  whereText: string;
+  whenText?: string;
+  whereText?: string;
   withWhomText: string;
   whatText: string;
 
@@ -20,6 +21,10 @@ export async function generateDiary(params: GenerateDiaryParams) {
     data: { session },
   } = await supabase.auth.getSession();
 
+  if (!session?.access_token) {
+    throw new Error("로그인이 필요합니다.");
+  }
+
   const response = await fetch(
     `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/generate-diary`,
     {
@@ -32,10 +37,21 @@ export async function generateDiary(params: GenerateDiaryParams) {
     },
   );
 
-  const result = await response.json();
+  const responseText = await response.text();
+  let result: { diary?: Diary; error?: string } = {};
+
+  try {
+    result = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    throw new Error(`일기 생성 응답을 읽지 못했습니다. (${response.status})`);
+  }
 
   if (!response.ok) {
-    throw new Error(result.error);
+    throw new Error(result.error ?? `일기 생성에 실패했습니다. (${response.status})`);
+  }
+
+  if (!result.diary) {
+    throw new Error("일기 생성 응답에 diary 데이터가 없습니다.");
   }
 
   return result.diary;
@@ -75,12 +91,35 @@ export async function getDiaryByDate(diaryDate: string) {
   return data;
 }
 
+export async function getDiaryById(diaryId: string) {
+  const { data, error } = await supabase
+    .from("diaries")
+    .select(
+      `
+      *,
+      diary_images (
+        image_url
+      )
+    `,
+    )
+    .eq("id", diaryId)
+    .single();
+
+  if (error) throw error;
+
+  return data as Diary;
+}
+
+type UpdateDiaryPatch = Pick<Partial<Diary>, "title" | "content">;
+
 // 일기 수정
-export async function updateDiary(diaryId: string, content: string) {
+export async function updateDiary(diaryId: string, patch: UpdateDiaryPatch) {
+  // Supabase RLS must allow authenticated users to update their own diary rows.
+  // If this fails in-app, check the update policy on the diaries table first.
   const { data, error } = await supabase
     .from("diaries")
     .update({
-      content,
+      ...patch,
       updated_at: new Date().toISOString(),
     })
     .eq("id", diaryId)
@@ -89,11 +128,13 @@ export async function updateDiary(diaryId: string, content: string) {
 
   if (error) throw error;
 
-  return data;
+  return data as Diary;
 }
 
 // 일기 삭제
 export async function deleteDiary(diaryId: string) {
+  // Supabase should cascade diary_images by diary_id, or orphaned image rows can remain.
+  // If there is no FK cascade in the DB, add it there instead of trying to fake a client transaction.
   const { error } = await supabase.from("diaries").delete().eq("id", diaryId);
 
   if (error) throw error;

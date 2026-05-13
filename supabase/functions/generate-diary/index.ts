@@ -1,12 +1,27 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import OpenAI from "npm:openai";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      headers: corsHeaders,
+    });
+  }
+
   try {
     const authHeader = req.headers.get("Authorization");
 
     if (!authHeader) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return Response.json({ error: "Unauthorized" }, {
+        status: 401,
+        headers: corsHeaders,
+      });
     }
 
     const supabase = createClient(
@@ -20,8 +35,8 @@ Deno.serve(async (req) => {
 
     const {
       diaryDate,
-      whenText,
-      whereText,
+      whenText = "",
+      whereText = "",
       withWhomText,
       whatText,
       emotion,
@@ -38,16 +53,22 @@ Deno.serve(async (req) => {
     } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
-      return Response.json({ error: "Invalid user" }, { status: 401 });
+      return Response.json({ error: "Invalid user" }, {
+        status: 401,
+        headers: corsHeaders,
+      });
     }
 
     // OpenAI Prompt
+    const whenLine = whenText ? `- 언제: ${whenText}` : "";
+    const whereLine = whereText ? `- 어디서: ${whereText}` : "";
+
     const prompt = `
 너는 감성적인 한국어 일기 작가다.
 
 입력 정보:
-- 언제: ${whenText}
-- 어디서: ${whereText}
+${whenLine}
+${whereLine}
 - 누구와: ${withWhomText}
 - 무엇을: ${whatText}
 - 감정: ${emotion}
@@ -133,6 +154,8 @@ JSON 형식:
 
     return Response.json({
       diary,
+    }, {
+      headers: corsHeaders,
     });
   } catch (error) {
     console.error(error);
@@ -143,6 +166,7 @@ JSON 형식:
       },
       {
         status: 500,
+        headers: corsHeaders,
       },
     );
   }
