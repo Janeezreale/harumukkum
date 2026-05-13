@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
 
   // CTA
   ctaButton: {
-    backgroundColor: '#1E293B',
+    backgroundColor: colors.blackDark,
     borderRadius: 14,
     paddingVertical: 18,
     alignItems: 'center',

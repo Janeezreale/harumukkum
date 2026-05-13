@@ -16,10 +16,10 @@ const mockReport = {
   highlight_text: '아침 운동을 했을 때,\n만족도가 40% 더 높아요.',
   highlight_percent: 40,
   insights: [
-    { type: 'increase' as const, title: '아침 운동', delta_percent: 40, icon: '🏃', color: '#22C55E' },
-    { type: 'increase' as const, title: '독서', delta_percent: 25, icon: '📚', color: '#A78BFA' },
-    { type: 'increase' as const, title: '카페', delta_percent: 15, icon: '☕', color: '#F59E0B' },
-    { type: 'decrease' as const, title: '야식', delta_percent: -22, icon: '🌙', color: '#F87171' },
+    { type: 'increase' as const, title: '아침 운동', delta_percent: 40, icon: '🏃', color: colors.positive },
+    { type: 'increase' as const, title: '독서', delta_percent: 25, icon: '📚', color: colors.primaryLight },
+    { type: 'increase' as const, title: '카페', delta_percent: 15, icon: '☕', color: colors.warning },
+    { type: 'decrease' as const, title: '야식', delta_percent: -22, icon: '🌙', color: colors.negativeLight },
   ] satisfies (ReportInsight & { icon: string; color: string })[],
   ai_observation:
     "I've noticed your mood stabilizes significantly on days with consistent sleep patterns. Consider setting a 'wind-down' reminder.",

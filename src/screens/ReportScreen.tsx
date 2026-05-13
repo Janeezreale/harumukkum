@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   heroImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.blackDeep,
   },
   heroOverlay: {
     position: 'absolute',
@@ -215,14 +215,14 @@ const styles = StyleSheet.create({
   },
   heroQuote: {
     fontSize: 14,
-    color: '#E9D5FF',
+    color: colors.primaryPalest,
     fontStyle: 'italic',
     lineHeight: 20,
   },
   heroLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#C4B5FD',
+    color: colors.primaryLighter,
     letterSpacing: 1,
   },
 
