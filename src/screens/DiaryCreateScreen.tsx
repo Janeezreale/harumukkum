@@ -275,6 +275,7 @@ export default function DiaryCreateScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
+
   flex: { flex: 1 },
 
   header: {
@@ -294,27 +295,28 @@ const styles = StyleSheet.create({
   },
 
   slogan: {
-    fontSize: 15,
+    fontSize: 16,
     color: colors.gray,
-    lineHeight: 24,
+    lineHeight: 26,
     textAlign: 'center',
     marginTop: 16,
     marginBottom: 8,
   },
 
-  // Question card (matches design's centered card style)
+  // Question card
   questionCard: {
     backgroundColor: colors.white,
-    borderRadius: 16,
-    padding: 4,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 20,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(196, 199, 199, 0.2)',
   },
   questionInner: {
-    backgroundColor: colors.grayLight,
+    backgroundColor: 'rgba(97, 75, 190, 0.06)',
     borderRadius: 12,
     paddingVertical: 28,
     paddingHorizontal: 20,
@@ -322,17 +324,19 @@ const styles = StyleSheet.create({
   },
   questionText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: colors.black,
+    fontWeight: '500',
+    color: colors.text,
     textAlign: 'center',
+    lineHeight: 24,
   },
 
   // Emotion row
   emotionRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 16,
-    marginTop: 4,
+    gap: 20,
+    marginTop: 8,
+    paddingVertical: 8,
   },
   emotionEmoji: { fontSize: 32 },
 
@@ -341,17 +345,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   textInput: {
-    backgroundColor: colors.grayLight,
+    backgroundColor: colors.white,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: colors.black,
-    minHeight: 48,
+    color: colors.text,
+    minHeight: 54,
+    borderWidth: 1,
+    borderColor: 'rgba(196, 199, 199, 0.4)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 20,
+    elevation: 1,
   },
   exampleText: {
     fontSize: 13,
-    color: colors.gray,
+    color: colors.placeholder,
     paddingHorizontal: 4,
   },
 
@@ -371,8 +382,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderWidth: 1,
     borderColor: colors.grayBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
-  chipBtnText: { fontSize: 15, color: colors.black, fontWeight: '500' },
+  chipBtnText: { fontSize: 15, color: colors.text, fontWeight: '500' },
   chipInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -408,14 +424,22 @@ const styles = StyleSheet.create({
   bottomBar: {
     paddingHorizontal: 20,
     paddingVertical: 14,
+    paddingBottom: 20,
     backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.grayBorder,
   },
   generateBtn: {
     backgroundColor: colors.black,
-    borderRadius: 14,
+    borderRadius: 12,
     paddingVertical: 18,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   generateBtnDisabled: { opacity: 0.4 },
-  generateBtnText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  generateBtnText: { color: colors.white, fontSize: 16, fontWeight: '600' },
 });

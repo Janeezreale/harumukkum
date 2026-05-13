@@ -29,23 +29,31 @@ export default function LoginScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        {/* Decorative blur element */}
+        <View style={styles.decorCircle} />
+
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>로그인</Text>
-          <TouchableOpacity hitSlop={8}>
-            <Ionicons name="person-outline" size={22} color={colors.black} />
+          <TouchableOpacity hitSlop={8} onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={22} color={colors.text} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
+          {/* Title */}
+          <View style={styles.titleGroup}>
+            <Text style={styles.appName}>하루묶음</Text>
+            <Text style={styles.subtitle}>오늘 하루를 기록해보세요</Text>
+          </View>
+
           {/* Form Card */}
           <View style={styles.formCard}>
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>이메일</Text>
               <TextInput
                 style={styles.input}
-                placeholder="이메일"
-                placeholderTextColor={colors.gray}
+                placeholder="이메일을 입력해주세요"
+                placeholderTextColor={colors.placeholder}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -54,11 +62,11 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>비밀번호</Text>
               <TextInput
                 style={styles.input}
-                placeholder="비밀번호"
-                placeholderTextColor={colors.gray}
+                placeholder="비밀번호를 입력해주세요"
+                placeholderTextColor={colors.placeholder}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -70,13 +78,17 @@ export default function LoginScreen() {
               onPress={handleLogin}
               activeOpacity={0.85}
             >
-              <Text style={styles.loginButtonText}>Login</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => router.push('/auth/signup' as any)}>
-              <Text style={styles.signupLink}>회원가입</Text>
+              <Text style={styles.loginButtonText}>로그인</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={styles.signupRow}
+            onPress={() => router.push('/auth/signup' as any)}
+          >
+            <Text style={styles.signupText}>아직 계정이 없으신가요? </Text>
+            <Text style={styles.signupLink}>회원가입</Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -89,68 +101,106 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   flex: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    position: 'relative',
+  decorCircle: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: 'rgba(97, 75, 190, 0.05)',
+    top: -80,
+    right: -60,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.black,
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    gap: 28,
+  },
+  titleGroup: {
+    gap: 6,
+  },
+  appName: {
+    fontSize: 32,
+    fontWeight: '500',
+    color: colors.black,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: colors.gray,
+    fontWeight: '400',
   },
   formCard: {
     backgroundColor: colors.white,
     borderRadius: 16,
     padding: 24,
     gap: 20,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: colors.grayBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 20,
+    elevation: 2,
   },
   fieldGroup: {
     gap: 8,
   },
   label: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.black,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text,
   },
   input: {
-    height: 48,
+    height: 50,
     borderWidth: 1,
     borderColor: colors.grayBorder,
-    borderRadius: 12,
+    borderRadius: 10,
     paddingHorizontal: 16,
     fontSize: 15,
-    color: colors.black,
+    color: colors.text,
     backgroundColor: colors.white,
   },
   loginButton: {
     backgroundColor: colors.black,
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 16,
     alignItems: 'center',
     marginTop: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   loginButtonText: {
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
-  signupLink: {
+  signupRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signupText: {
     fontSize: 14,
     color: colors.gray,
-    textDecorationLine: 'underline',
+  },
+  signupLink: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '600',
   },
 });
