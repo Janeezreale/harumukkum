@@ -36,9 +36,6 @@ const todayFragments = [
   },
 ];
 
-// TODO: replace with api/diary.getKeywordChips
-const keywordChips = ["#카페", "#설렘", "#지친 하루"];
-
 // TODO: replace with api/diary.getEmotionInsight
 const emotionInsight = {
   title: "오늘의 감정 톤을 감지했어요",
@@ -57,6 +54,8 @@ export default function HomeScreen() {
         <TouchableOpacity hitSlop={8} style={styles.headerIconBtn} onPress={() => router.push('/mypage' as any)}>
           <Ionicons name="person-outline" size={20} color={colors.black} />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>하루묶음</Text>
+        <View style={styles.headerIconBtn} />
       </View>
 
       <ScrollView

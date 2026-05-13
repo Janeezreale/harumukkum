@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from "react-native";
+import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../constants/colors";
 
@@ -19,9 +21,6 @@ export default function ReportScreen() {
       <View style={styles.header}>
         <View style={{ width: 22 }} />
         <Text style={styles.headerTitle}>Weekly Report</Text>
-        <TouchableOpacity hitSlop={8}>
-          <Ionicons name="person-outline" size={22} color={colors.black} />
-        </TouchableOpacity>
       </View>
 
       {hasDiaries ? (
@@ -71,11 +70,9 @@ export default function ReportScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 14,
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 17,
