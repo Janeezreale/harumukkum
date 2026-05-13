@@ -12,24 +12,31 @@ import {
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { colors } from '../constants/colors';
-import { signIn } from '../api/auth';
+import { signUp } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 
-export default function LoginScreen() {
+export default function SignUpScreen() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const [id, setId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleLogin() {
+  async function handleSignUp() {
     if (isSubmitting) return;
 
+    const username = id.trim();
     const trimmedEmail = email.trim();
 
-    if (!trimmedEmail || !password) {
-      setErrorMessage('이메일과 비밀번호를 입력해 주세요.');
+    if (!username || !trimmedEmail || !password) {
+      setErrorMessage('아이디, 이메일, 비밀번호를 모두 입력해 주세요.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMessage('비밀번호는 6자 이상 입력해 주세요.');
       return;
     }
 
@@ -37,14 +44,20 @@ export default function LoginScreen() {
       setIsSubmitting(true);
       setErrorMessage('');
 
-      const auth = await signIn(trimmedEmail, password);
+      const auth = await signUp({
+        email: trimmedEmail,
+        password,
+        username,
+        nickname: username,
+      });
+
       setAuth(auth);
       router.replace('/(tabs)');
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : '로그인 중 문제가 발생했습니다.',
+          : '회원가입 중 문제가 발생했습니다.',
       );
     } finally {
       setIsSubmitting(false);
@@ -59,12 +72,23 @@ export default function LoginScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>로그인</Text>
+          <Text style={styles.headerTitle}>회원가입</Text>
         </View>
 
         <View style={styles.content}>
-          {/* Form Card */}
           <View style={styles.formCard}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>ID</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="아이디"
+                placeholderTextColor={colors.gray}
+                value={id}
+                onChangeText={setId}
+                autoCapitalize="none"
+              />
+            </View>
+
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Email</Text>
               <TextInput
@@ -91,15 +115,15 @@ export default function LoginScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.loginButton, isSubmitting && styles.disabledButton]}
-              onPress={handleLogin}
+              style={[styles.signUpButton, isSubmitting && styles.disabledButton]}
+              onPress={handleSignUp}
               activeOpacity={0.85}
               disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
-                <Text style={styles.loginButtonText}>Login</Text>
+                <Text style={styles.signUpButtonText}>Sign Up</Text>
               )}
             </TouchableOpacity>
 
@@ -107,8 +131,8 @@ export default function LoginScreen() {
               <Text style={styles.errorText}>{errorMessage}</Text>
             ) : null}
 
-            <TouchableOpacity onPress={() => router.push('/auth/signup' as any)}>
-              <Text style={styles.signupLink}>회원가입</Text>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text style={styles.loginLink}>이미 계정이 있으신가요? 로그인하기</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -170,14 +194,14 @@ const styles = StyleSheet.create({
     color: colors.black,
     backgroundColor: colors.white,
   },
-  loginButton: {
+  signUpButton: {
     backgroundColor: colors.black,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 4,
   },
-  loginButtonText: {
+  signUpButtonText: {
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',
@@ -190,7 +214,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  signupLink: {
+  loginLink: {
     fontSize: 14,
     color: colors.gray,
     textDecorationLine: 'underline',
