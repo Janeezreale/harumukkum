@@ -83,7 +83,7 @@ export default function ReportScreen() {
             />
             <View style={styles.heroOverlay}>
               <Text style={styles.heroQuote}>
-                "{mockReport.narrative_quote}"
+                {`"${mockReport.narrative_quote}"`}
               </Text>
               <Text style={styles.heroLabel}>AI NARRATIVE INSIGHT</Text>
             </View>

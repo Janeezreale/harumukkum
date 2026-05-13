@@ -8,32 +8,15 @@ import {
   SafeAreaView,
   Platform,
   ToastAndroid,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/colors';
 import type { Diary } from '../types/diary';
-
-// TODO: replace with api/diary.getDiaryById(id)
-function getMockDiary(id: string): Diary {
-  return {
-    id,
-    user_id: 'user-001',
-    diary_date: '2024-05-26',
-    when_text: '오전',
-    where_text: '카페, 성수동',
-    who_text: '혼자',
-    what_text: '커피 마시기, 산책',
-    emotion: 'happy',
-    why_text: '작은 설렘과 여러 일들이 겹쳐 예민해졌지만 버텨냈다',
-    body: `오전의 나는 카페의 온기 속에서 작은 설렘을 발견했다. 라떼의 부드러운 거품처럼, 마음도 조금은 말랑해졌다.\n\n성수동 골목을 걷다 문득, 나도 모르게 미래의 나를 상상했다. 그 상상은 꽤 근사했다.\n\n하지만 오후가 되자 마음의 체력은 바닥났다. 여러 가지 일들이 겹치고, 꽤히 예민해지고, 쉽게 지쳤다.\n\n그래도 이상하게, 오늘의 나는 무너지지 않았다. 지친 하루를 안고서도, 나만의 방식으로 잘 버텨냈으니까.`,
-    photo_url: null,
-    is_public: false,
-    created_at: '2024-05-26T09:00:00Z',
-    updated_at: '2024-05-26T20:00:00Z',
-  };
-}
+import { getDiaryByDate, getDiaryById } from '../api/diary';
+import { useDiaryStore } from '../store/diaryStore';
 
 function showToast(message: string) {
   if (Platform.OS === 'android') {
@@ -49,13 +32,63 @@ function formatDate(dateStr: string): string {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${days[d.getDay()]}`;
 }
 
+function getDiaryTitle(diary: Diary) {
+  return diary.title || '오늘의 일기';
+}
+
+function getDiaryContent(diary: Diary) {
+  return diary.content || diary.body || '생성된 일기 본문이 비어 있어요.';
+}
+
 export default function DiaryDetailScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, date } = useLocalSearchParams<{ id?: string; date?: string }>();
   const diaryId = Array.isArray(id) ? id[0] : id ?? '';
+  const diaryDate = Array.isArray(date) ? date[0] : date ?? '';
+  const routeDiaryKey = diaryId || diaryDate;
+  const { lastGeneratedDiary } = useDiaryStore();
 
-  const diary = getMockDiary(diaryId);
+  const [diary, setDiary] = useState<Diary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadDiary() {
+      if (!routeDiaryKey) {
+        setIsLoading(false);
+        return;
+      }
+
+      if (lastGeneratedDiary?.id === routeDiaryKey || lastGeneratedDiary?.diary_date === routeDiaryKey) {
+        setDiary(lastGeneratedDiary);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const isDateRoute = /^\d{4}-\d{2}-\d{2}$/.test(routeDiaryKey);
+        const data = isDateRoute
+          ? await getDiaryByDate(routeDiaryKey)
+          : await getDiaryById(routeDiaryKey);
+        if (mounted) setDiary(data);
+      } catch (error) {
+        console.error('Diary detail load failed', error);
+        if (mounted) {
+          Alert.alert('오류', '일기를 불러오지 못했어요.');
+        }
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    }
+
+    loadDiary();
+
+    return () => {
+      mounted = false;
+    };
+  }, [lastGeneratedDiary, routeDiaryKey]);
 
   function handleDelete() {
     Alert.alert('일기 삭제', '이 일기를 삭제하시겠어요?', [
@@ -73,6 +106,33 @@ export default function DiaryDetailScreen() {
 
   function handleApprove() {
     showToast('일기가 저장되었어요');
+  }
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centerState}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!diary) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
+            <Ionicons name="arrow-back" size={22} color={colors.black} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>오늘의 하루 묶음</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.centerState}>
+          <Text style={styles.emptyText}>일기를 찾을 수 없어요.</Text>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -103,7 +163,7 @@ export default function DiaryDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Subtitle */}
-        <Text style={styles.subtitle}>복잡하지만, 나쁘지 않았던 하루</Text>
+        <Text style={styles.subtitle}>{getDiaryTitle(diary)}</Text>
 
         {/* Date row */}
         <View style={styles.dateRow}>
@@ -113,7 +173,7 @@ export default function DiaryDetailScreen() {
           </View>
           <TouchableOpacity
             style={styles.editLink}
-            onPress={() => router.push(`/diary/edit/${diaryId}` as any)}
+            onPress={() => router.push(`/diary/edit/${diary.id}` as any)}
           >
             <Ionicons name="pencil" size={14} color={colors.gray} />
             <Text style={styles.editLinkText}>수정</Text>
@@ -122,7 +182,7 @@ export default function DiaryDetailScreen() {
 
         {/* Diary body */}
         <View style={styles.bodyCard}>
-          <Text style={styles.bodyText}>{diary.body}</Text>
+          <Text style={styles.bodyText}>{getDiaryContent(diary)}</Text>
         </View>
 
         {/* Save prompt */}
@@ -132,7 +192,7 @@ export default function DiaryDetailScreen() {
         <View style={styles.actionRow}>
           <TouchableOpacity
             style={styles.editButton}
-            onPress={() => router.push(`/diary/edit/${diaryId}` as any)}
+            onPress={() => router.push(`/diary/edit/${diary.id}` as any)}
             activeOpacity={0.8}
           >
             <Text style={styles.editButtonText}>수정하기</Text>
@@ -156,7 +216,7 @@ export default function DiaryDetailScreen() {
             <Text style={styles.insightTitle}>AI의 통찰</Text>
           </View>
           <Text style={styles.insightBody}>
-            오늘의 당신은 감정의 변화가 컸지만 스스로를 다독이는 성숙한 태도를 보여주었습니다. 생활에서 "안녕"을 이어가는 서사가 매우 인상적이에요.
+            오늘의 당신은 감정의 변화가 컸지만 스스로를 다독이는 성숙한 태도를 보여주었습니다. 생활에서 안녕을 이어가는 서사가 매우 인상적이에요.
           </Text>
         </View>
       </ScrollView>
@@ -180,6 +240,18 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: colors.black,
+  },
+  headerSpacer: {
+    width: 22,
+  },
+  centerState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.gray,
   },
   // Dropdown
   dropdown: {
