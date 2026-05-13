@@ -110,12 +110,16 @@ export async function getDiaryById(diaryId: string) {
   return data as Diary;
 }
 
+type UpdateDiaryPatch = Pick<Partial<Diary>, "title" | "content">;
+
 // 일기 수정
-export async function updateDiary(diaryId: string, content: string) {
+export async function updateDiary(diaryId: string, patch: UpdateDiaryPatch) {
+  // Supabase RLS must allow authenticated users to update their own diary rows.
+  // If this fails in-app, check the update policy on the diaries table first.
   const { data, error } = await supabase
     .from("diaries")
     .update({
-      content,
+      ...patch,
       updated_at: new Date().toISOString(),
     })
     .eq("id", diaryId)
@@ -124,11 +128,13 @@ export async function updateDiary(diaryId: string, content: string) {
 
   if (error) throw error;
 
-  return data;
+  return data as Diary;
 }
 
 // 일기 삭제
 export async function deleteDiary(diaryId: string) {
+  // Supabase should cascade diary_images by diary_id, or orphaned image rows can remain.
+  // If there is no FK cascade in the DB, add it there instead of trying to fake a client transaction.
   const { error } = await supabase.from("diaries").delete().eq("id", diaryId);
 
   if (error) throw error;
