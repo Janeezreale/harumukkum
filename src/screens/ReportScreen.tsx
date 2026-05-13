@@ -5,63 +5,100 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../constants/colors";
-
-// TODO: replace with actual diary count check
-const hasDiaries = false;
+import { getMyDiaries } from "../api/diary";
 
 export default function ReportScreen() {
+  const router = useRouter();
+  const [hasDiaries, setHasDiaries] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    getMyDiaries()
+      .then((data) => setHasDiaries(data.length > 0))
+      .catch(() => setHasDiaries(false));
+  }, []);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={{ width: 22 }} />
         <Text style={styles.headerTitle}>Weekly Report</Text>
       </View>
 
-      {hasDiaries ? (
+      {hasDiaries === null ? (
+        <View style={styles.centered}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : !hasDiaries ? (
+        <View style={styles.centered}>
+          <Text style={styles.emptyEmoji}>📔</Text>
+          <Text style={styles.emptyTitle}>아직 남긴 일기가 없어요.</Text>
+          <Text style={styles.emptyDesc}>
+            일기를 작성하면{"\n"}나만의 리포트를 볼 수 있어요.
+          </Text>
+          <TouchableOpacity
+            style={styles.writeBtn}
+            onPress={() => router.push("/(tabs)/create")}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.writeBtnText}>일기 쓰기</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* 구조 자리 - 일기 데이터 쌓이면 활성화 */}
+          {/* Magazine Header Card */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Emotion Storyline</Text>
-            <View style={styles.placeholder}>
-              <Text style={styles.placeholderText}>차트 영역</Text>
-            </View>
+            <Text style={styles.cardTitle}>DAILY REPORT</Text>
+            <View style={styles.emptyBox} />
           </View>
 
+          {/* Emotion Storyline */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Emotion Storyline</Text>
+              <Ionicons name="sparkles" size={16} color={colors.primary} />
+            </View>
+            <View style={styles.emptyBox} />
+          </View>
+
+          {/* Keyword TOP 5 */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Keyword TOP 5</Text>
-            <View style={styles.placeholder}>
-              <Text style={styles.placeholderText}>키워드 영역</Text>
+            <View style={styles.skeletonList}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <View key={i} style={styles.skeletonBar} />
+              ))}
             </View>
           </View>
 
+          {/* Reflection Tip */}
           <View style={styles.reflectionCard}>
             <View style={styles.reflectionHeader}>
               <Ionicons name="sparkles" size={16} color={colors.primary} />
               <Text style={styles.reflectionTitle}>Reflection Tip</Text>
             </View>
-            <View style={styles.placeholder}>
-              <Text style={styles.placeholderText}>AI 팁 영역</Text>
-            </View>
+            <View style={[styles.emptyBox, { height: 60 }]} />
           </View>
+
+          {/* View Full Report */}
+          <TouchableOpacity
+            style={[styles.fullReportBtn, styles.fullReportBtnDisabled]}
+            disabled
+            activeOpacity={0.85}
+          >
+            <Text style={styles.fullReportText}>View Full Report</Text>
+            <Ionicons name="arrow-forward" size={16} color={colors.white} />
+          </TouchableOpacity>
         </ScrollView>
-      ) : (
-        <View style={styles.emptyState}>
-          <Ionicons name="document-text-outline" size={64} color={colors.grayBorder} />
-          <Text style={styles.emptyTitle}>아직 리포트가 없어요</Text>
-          <Text style={styles.emptySubtitle}>
-            일기를 작성하면 AI가 주간 리포트를{'\n'}자동으로 생성해드려요.
-          </Text>
-        </View>
       )}
     </SafeAreaView>
   );
@@ -80,10 +117,45 @@ const styles = StyleSheet.create({
     color: colors.black,
   },
 
+  centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    paddingHorizontal: 32,
+  },
+  emptyEmoji: {
+    fontSize: 48,
+    marginBottom: 4,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: colors.black,
+    textAlign: "center",
+  },
+  emptyDesc: {
+    fontSize: 14,
+    color: colors.gray,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  writeBtn: {
+    marginTop: 8,
+    backgroundColor: colors.black,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 36,
+  },
+  writeBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.white,
+  },
+
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 32, gap: 16 },
 
-  // Cards (structure preview)
   card: {
     backgroundColor: colors.white,
     borderRadius: 16,
@@ -95,24 +167,30 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: colors.black,
   },
-  placeholder: {
-    height: 80,
+
+  emptyBox: {
+    height: 120,
     backgroundColor: colors.grayLight,
     borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  placeholderText: {
-    fontSize: 13,
-    color: colors.gray,
   },
 
-  // Reflection
+  skeletonList: { gap: 12 },
+  skeletonBar: {
+    height: 16,
+    backgroundColor: colors.grayLight,
+    borderRadius: 8,
+  },
+
   reflectionCard: {
     backgroundColor: colors.primaryBg,
     borderRadius: 16,
@@ -130,24 +208,17 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
   },
 
-  // Empty state
-  emptyState: {
-    flex: 1,
-    justifyContent: "center",
+  fullReportBtn: {
+    backgroundColor: colors.black,
+    borderRadius: 28,
+    paddingVertical: 16,
+    flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingBottom: 80,
+    justifyContent: "center",
+    gap: 8,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: colors.black,
-    marginTop: 8,
+  fullReportBtnDisabled: {
+    opacity: 0.3,
   },
-  emptySubtitle: {
-    fontSize: 14,
-    color: colors.gray,
-    textAlign: "center",
-    lineHeight: 22,
-  },
+  fullReportText: { fontSize: 15, fontWeight: "600", color: colors.white },
 });

@@ -18,8 +18,18 @@ import { colors } from '../constants/colors';
 import { emotions } from '../constants/emotions';
 import { validateRequiredDiaryAnswers } from '../utils/validation';
 import { useDiaryStore } from '../store/diaryStore';
-import { generateDiary, uploadDiaryImage } from '../api/diary';
-import type { DiaryAnswer } from '../types/diary';
+import type { DiaryAnswer, DiaryCreateInput } from '../types/diary';
+
+// TODO: replace with api/diary.createDiary(input)
+async function mockCreateDiary(input: DiaryCreateInput) {
+  await new Promise((r) => setTimeout(r, 1000));
+
+  return {
+    id: 'mock-' + Date.now(),
+    ...input,
+    body: 'AI가 생성한 본문: 오늘 하루도 수고했어요.',
+  };
+}
 
 type StepKey = keyof DiaryAnswer;
 
@@ -102,19 +112,16 @@ const STEPS: Step[] = [
   },
 ];
 
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : '알 수 없는 오류가 발생했어요.';
-}
-
 export default function DiaryCreateScreen() {
   const router = useRouter();
-  const { draftAnswer, 
-         setDraftAnswer, 
-         draftPhotoUri, 
-         resetDraft, 
-         selectedDate, 
-         setLastGeneratedDiary } =
-    useDiaryStore();
+
+  const {
+    draftAnswer,
+    setDraftAnswer,
+    draftPhotoUri,
+    resetDraft,
+    selectedDate,
+  } = useDiaryStore();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [textInput, setTextInput] = useState('');
@@ -147,6 +154,8 @@ export default function DiaryCreateScreen() {
 
   async function handleGenerate() {
     const result = validateRequiredDiaryAnswers({
+      when: draftAnswer.when_text,
+      where: draftAnswer.where_text,
       withWhom: draftAnswer.who_text,
       what: draftAnswer.what_text,
       emotion: draftAnswer.emotion,
@@ -161,31 +170,25 @@ export default function DiaryCreateScreen() {
     setIsLoading(true);
 
     try {
-      let imageUrls: string[] = [];
-
-      if (draftPhotoUri) {
-        const imageUrl = draftPhotoUri.startsWith('http')
-          ? draftPhotoUri
-          : await uploadDiaryImage(draftPhotoUri);
-        imageUrls = [imageUrl];
-      }
-
-      const created = await generateDiary({
-        diaryDate: selectedDate,
+      const input: DiaryCreateInput = {
+        diary_date: selectedDate,
         emotion: draftAnswer.emotion!,
-        whatText: draftAnswer.what_text ?? '',
-        withWhomText: draftAnswer.who_text ?? '',
-        whenText: draftAnswer.when_text ?? '',
-        whereText: draftAnswer.where_text ?? '',
-        reasonText: draftAnswer.why_text ?? '',
-        imageUrls,
-      });
-      setLastGeneratedDiary(created);
+        what_text: draftAnswer.what_text ?? '',
+        who_text: draftAnswer.who_text ?? '',
+        when_text: draftAnswer.when_text ?? '',
+        where_text: draftAnswer.where_text ?? '',
+        why_text: draftAnswer.why_text ?? '',
+        photo_url: draftPhotoUri ?? null,
+        is_public: false,
+      };
+
+      const created = await mockCreateDiary(input);
+
       resetDraft();
-      router.replace(`/diary/${created.id || created.diary_date}` as any);
-    } catch (error) {
-      console.error('Diary generation failed', error);
-      Alert.alert('일기 생성 실패', getErrorMessage(error));
+
+      router.replace(`/diary/${created.id}` as any);
+    } catch {
+      Alert.alert('오류', '일기 생성에 실패했어요. 다시 시도해주세요.');
     } finally {
       setIsLoading(false);
     }
@@ -205,9 +208,7 @@ export default function DiaryCreateScreen() {
 
           <Text style={styles.headerTitle}>오늘의 하루 조각</Text>
 
-          <TouchableOpacity hitSlop={8}>
-            <Ionicons name="diamond-outline" size={20} color={colors.black} />
-          </TouchableOpacity>
+          <View style={{ width: 22 }} />
         </View>
 
         <ScrollView
@@ -230,16 +231,16 @@ export default function DiaryCreateScreen() {
           )}
 
           {activeStep?.type === 'emotion' && (
-            <View style={styles.emotionRow}>
-              {emotions.slice(0, 5).map((emotionOption) => (
+            <View style={styles.emotionGrid}>
+              {emotions.map((emotionOption) => (
                 <TouchableOpacity
                   key={emotionOption.id}
+                  style={styles.emotionItem}
                   onPress={() => handleAnswer('emotion', emotionOption.id)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.emotionEmoji}>
-                    {emotionOption.emoji}
-                  </Text>
+                  <Text style={styles.emotionEmoji}>{emotionOption.emoji}</Text>
+                  <Text style={styles.emotionLabel}>{emotionOption.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -423,15 +424,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-  emotionRow: {
+  emotionGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 20,
+    gap: 12,
     marginTop: 8,
     paddingVertical: 8,
   },
+  emotionItem: {
+    alignItems: 'center',
+    gap: 4,
+    width: 56,
+  },
   emotionEmoji: {
     fontSize: 32,
+  },
+  emotionLabel: {
+    fontSize: 11,
+    color: colors.gray,
+    textAlign: 'center',
   },
   textArea: {
     gap: 8,

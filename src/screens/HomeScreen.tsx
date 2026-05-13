@@ -49,10 +49,8 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={{ width: 36 }} />
-        <Text style={styles.headerTitle}>하루묶음</Text>
-        <TouchableOpacity hitSlop={8} style={styles.headerIconBtn} onPress={() => router.push('/mypage' as any)}>
-          <Ionicons name="person-outline" size={20} color={colors.black} />
+        <TouchableOpacity hitSlop={8} style={styles.headerIconBtn} onPress={() => router.push('/mypage')}>
+          <Ionicons name="person-circle-outline" size={26} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>하루묶음</Text>
         <View style={styles.headerIconBtn} />
@@ -71,15 +69,6 @@ export default function HomeScreen() {
           <Text style={styles.heroSubtitle}>
             당신의 오늘을 한 페이지로 정리해드릴게요.
           </Text>
-
-          {/* Keyword Chips */}
-          <View style={styles.chipsRow}>
-            {keywordChips.map((chip) => (
-              <View key={chip} style={styles.chip}>
-                <Text style={styles.chipText}>{chip}</Text>
-              </View>
-            ))}
-          </View>
 
           {/* CTA Button */}
           <TouchableOpacity
@@ -203,33 +192,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
-  // Keyword Chips
-  chipsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  chip: {
-    backgroundColor: colors.white,
-    borderRadius: 9999,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: colors.grayBorder,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 1,
-  },
-  chipText: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: "400",
-  },
   // CTA Button
   ctaButton: {
     flexDirection: "row",
