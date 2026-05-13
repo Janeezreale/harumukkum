@@ -49,13 +49,14 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerIconBtn} />
         <Text style={styles.headerTitle}>하루묶음</Text>
-        <TouchableOpacity hitSlop={8} style={styles.headerIconBtn} onPress={() => router.push("/mypage")}>
+        <TouchableOpacity
+          hitSlop={8}
+          style={styles.headerIconBtn}
+          onPress={() => router.push("/mypage")}
+        >
           <Ionicons name="person-outline" size={20} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>하루묶음</Text>
-        <View style={styles.headerIconBtn} />
       </View>
 
       <ScrollView
@@ -139,12 +140,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: colors.background,
+    position: "relative",
   },
   headerIconBtn: {
+    position: "absolute",
+    right: 16,
     width: 36,
     height: 36,
     borderRadius: 18,
