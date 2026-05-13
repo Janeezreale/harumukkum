@@ -7,52 +7,53 @@ import {
   Image,
   SafeAreaView,
   Dimensions,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { LineChart } from 'react-native-gifted-charts';
-import { colors } from '../constants/colors';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { LineChart } from "react-native-gifted-charts";
+import { colors } from "../constants/colors";
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // TODO: replace with api/report.getWeeklyReport()
 const mockReport = {
   vol: 23,
-  date: '2024.05.26',
-  narrative_quote: "This week's Alex is like the protagonist of a coming-of-age movie",
+  date: "2024.05.26",
+  narrative_quote:
+    "This week's Alex is like the protagonist of a coming-of-age movie",
   emotion_story: [
-    { label: 'M', intensity: 30 },
-    { label: 'T', intensity: 50 },
-    { label: 'W', intensity: 40 },
-    { label: 'T', intensity: 65 },
-    { label: 'F', intensity: 85 },
-    { label: 'S', intensity: 60 },
-    { label: 'S', intensity: 45 },
+    { label: "M", intensity: 30 },
+    { label: "T", intensity: 50 },
+    { label: "W", intensity: 40 },
+    { label: "T", intensity: 65 },
+    { label: "F", intensity: 85 },
+    { label: "S", intensity: 60 },
+    { label: "S", intensity: 45 },
   ],
-  emotion_caption: 'Your mood peaked on Friday following a series of creative breakthroughs.',
+  emotion_caption:
+    "Your mood peaked on Friday following a series of creative breakthroughs.",
   keywords: [
-    { label: 'Growth', entries: 12 },
-    { label: 'Challenge', entries: 8 },
-    { label: 'Serenity', entries: 6 },
-    { label: 'Focus', entries: 5 },
-    { label: 'Gratitude', entries: 4 },
+    { label: "Growth", entries: 12 },
+    { label: "Challenge", entries: 8 },
+    { label: "Serenity", entries: 6 },
+    { label: "Focus", entries: 5 },
+    { label: "Gratitude", entries: 4 },
   ],
   reflection_tip:
-    'You\'ve mentioned "Morning Coffee" 5 times this week in relation to your highest mood scores. Perhaps it\'s not the caffeine, but the quiet moment of solitude?',
+    "You've mentioned \"Morning Coffee\" 5 times this week in relation to your highest mood scores. Perhaps it's not the caffeine, but the quiet moment of solitude?",
 };
 
 const MAX_ENTRIES = 12;
 
 export default function ReportScreen() {
-  const chartData = mockReport.emotion_story.map((p) => ({ value: p.intensity }));
+  const chartData = mockReport.emotion_story.map((p) => ({
+    value: p.intensity,
+  }));
   const chartWidth = SCREEN_WIDTH - 100;
 
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity hitSlop={8}>
-          <Ionicons name="menu" size={22} color={colors.black} />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>Weekly Report</Text>
         <TouchableOpacity hitSlop={8}>
           <Ionicons name="person-outline" size={22} color={colors.black} />
@@ -70,16 +71,20 @@ export default function ReportScreen() {
             <Text style={styles.volText}>VOL. {mockReport.vol}</Text>
             <Text style={styles.dateText}>{mockReport.date}</Text>
           </View>
-          <Text style={styles.dailyTitle}>DAILY{'\n'}REPORT</Text>
+          <Text style={styles.dailyTitle}>DAILY{"\n"}REPORT</Text>
 
           {/* Hero Image */}
           <View style={styles.heroImageWrapper}>
             <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600' }}
+              source={{
+                uri: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600",
+              }}
               style={styles.heroImage}
             />
             <View style={styles.heroOverlay}>
-              <Text style={styles.heroQuote}>"{mockReport.narrative_quote}"</Text>
+              <Text style={styles.heroQuote}>
+                "{mockReport.narrative_quote}"
+              </Text>
               <Text style={styles.heroLabel}>AI NARRATIVE INSIGHT</Text>
             </View>
           </View>
@@ -113,7 +118,9 @@ export default function ReportScreen() {
           </View>
           <View style={styles.chartXLabels}>
             {mockReport.emotion_story.map((p, i) => (
-              <Text key={i} style={styles.chartXLabel}>{p.label}</Text>
+              <Text key={i} style={styles.chartXLabel}>
+                {p.label}
+              </Text>
             ))}
           </View>
           <Text style={styles.chartCaption}>{mockReport.emotion_caption}</Text>
@@ -126,7 +133,13 @@ export default function ReportScreen() {
             {mockReport.keywords.map((kw) => (
               <View key={kw.label} style={styles.keywordRow}>
                 <Text style={styles.keywordLabel}>#{kw.label}</Text>
-                <Text style={[styles.keywordEntries, kw.entries === MAX_ENTRIES && styles.keywordEntriesHighlight]}>
+                <Text
+                  style={[
+                    styles.keywordEntries,
+                    kw.entries === MAX_ENTRIES &&
+                      styles.keywordEntriesHighlight,
+                  ]}
+                >
                   {kw.entries} entries
                 </Text>
               </View>
@@ -156,13 +169,21 @@ export default function ReportScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: colors.black },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: colors.black,
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
+  },
 
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 32, gap: 16 },
@@ -180,22 +201,27 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   magazineTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  volText: { fontSize: 12, fontWeight: '600', color: colors.gray, letterSpacing: 0.5 },
+  volText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.gray,
+    letterSpacing: 0.5,
+  },
   dateText: { fontSize: 12, color: colors.gray },
   dailyTitle: {
     fontSize: 36,
-    fontWeight: '900',
+    fontWeight: "900",
     color: colors.black,
     lineHeight: 42,
     letterSpacing: -0.5,
   },
   heroImageWrapper: {
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
     height: 200,
     marginTop: 4,
   },
@@ -205,12 +231,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.blackDeep,
   },
   heroOverlay: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     padding: 16,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: "rgba(0,0,0,0.5)",
     gap: 4,
   },
   heroQuote: {
@@ -239,38 +265,43 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.black,
   },
 
   // Chart
   chartWrapper: {
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   chartXLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingHorizontal: 8,
   },
-  chartXLabel: { fontSize: 12, color: colors.gray, textAlign: 'center' },
-  chartCaption: { fontSize: 12, color: colors.gray, lineHeight: 18, marginTop: 4 },
+  chartXLabel: { fontSize: 12, color: colors.gray, textAlign: "center" },
+  chartCaption: {
+    fontSize: 12,
+    color: colors.gray,
+    lineHeight: 18,
+    marginTop: 4,
+  },
 
   // Keywords
   keywordList: { gap: 12 },
   keywordRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  keywordLabel: { fontSize: 15, fontWeight: '600', color: colors.black },
+  keywordLabel: { fontSize: 15, fontWeight: "600", color: colors.black },
   keywordEntries: { fontSize: 13, color: colors.gray },
-  keywordEntriesHighlight: { color: colors.negative, fontWeight: '600' },
+  keywordEntriesHighlight: { color: colors.negative, fontWeight: "600" },
 
   // Reflection
   reflectionCard: {
@@ -280,11 +311,15 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   reflectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
-  reflectionTitle: { fontSize: 15, fontWeight: '700', color: colors.primaryDark },
+  reflectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.primaryDark,
+  },
   reflectionBody: { fontSize: 13, lineHeight: 21, color: colors.primary },
 
   // Full report button
@@ -292,10 +327,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.black,
     borderRadius: 28,
     paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
-  fullReportText: { fontSize: 15, fontWeight: '600', color: colors.white },
+  fullReportText: { fontSize: 15, fontWeight: "600", color: colors.white },
 });
