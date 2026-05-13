@@ -208,9 +208,7 @@ export default function DiaryCreateScreen() {
 
           <Text style={styles.headerTitle}>오늘의 하루 조각</Text>
 
-          <TouchableOpacity hitSlop={8}>
-            <Ionicons name="diamond-outline" size={20} color={colors.black} />
-          </TouchableOpacity>
+          <View style={{ width: 22 }} />
         </View>
 
         <ScrollView
@@ -233,16 +231,16 @@ export default function DiaryCreateScreen() {
           )}
 
           {activeStep?.type === 'emotion' && (
-            <View style={styles.emotionRow}>
-              {emotions.slice(0, 5).map((emotionOption) => (
+            <View style={styles.emotionGrid}>
+              {emotions.map((emotionOption) => (
                 <TouchableOpacity
                   key={emotionOption.id}
+                  style={styles.emotionItem}
                   onPress={() => handleAnswer('emotion', emotionOption.id)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.emotionEmoji}>
-                    {emotionOption.emoji}
-                  </Text>
+                  <Text style={styles.emotionEmoji}>{emotionOption.emoji}</Text>
+                  <Text style={styles.emotionLabel}>{emotionOption.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -426,15 +424,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-  emotionRow: {
+  emotionGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 20,
+    gap: 12,
     marginTop: 8,
     paddingVertical: 8,
   },
+  emotionItem: {
+    alignItems: 'center',
+    gap: 4,
+    width: 56,
+  },
   emotionEmoji: {
     fontSize: 32,
+  },
+  emotionLabel: {
+    fontSize: 11,
+    color: colors.gray,
+    textAlign: 'center',
   },
   textArea: {
     gap: 8,
