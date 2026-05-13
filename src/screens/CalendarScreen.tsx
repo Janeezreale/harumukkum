@@ -99,7 +99,7 @@ export default function CalendarScreen() {
               activeOpacity={cell?.hasDiary ? 0.7 : 1}
               onPress={() => {
                 if (cell?.hasDiary) {
-                  router.push(`/diary/${cell.day}`);
+                  router.push(`/diary/${cell.day}` as any);
                 }
               }}
             >

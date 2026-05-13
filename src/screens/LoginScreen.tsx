@@ -73,7 +73,7 @@ export default function LoginScreen() {
               <Text style={styles.loginButtonText}>Login</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => router.push('/auth/signup')}>
+            <TouchableOpacity onPress={() => router.push('/auth/signup' as any)}>
               <Text style={styles.signupLink}>회원가입</Text>
             </TouchableOpacity>
           </View>

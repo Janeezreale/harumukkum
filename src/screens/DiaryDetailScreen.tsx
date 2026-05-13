@@ -113,7 +113,7 @@ export default function DiaryDetailScreen() {
           </View>
           <TouchableOpacity
             style={styles.editLink}
-            onPress={() => router.push(`/diary/edit/${diaryId}`)}
+            onPress={() => router.push(`/diary/edit/${diaryId}` as any)}
           >
             <Ionicons name="pencil" size={14} color={colors.gray} />
             <Text style={styles.editLinkText}>수정</Text>
@@ -132,7 +132,7 @@ export default function DiaryDetailScreen() {
         <View style={styles.actionRow}>
           <TouchableOpacity
             style={styles.editButton}
-            onPress={() => router.push(`/diary/edit/${diaryId}`)}
+            onPress={() => router.push(`/diary/edit/${diaryId}` as any)}
             activeOpacity={0.8}
           >
             <Text style={styles.editButtonText}>수정하기</Text>

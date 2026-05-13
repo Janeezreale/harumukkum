@@ -118,7 +118,7 @@ export default function DiaryCreateScreen() {
       };
       const created = await mockCreateDiary(input);
       resetDraft();
-      router.replace({ pathname: '/diary/[id]', params: { id: created.id } });
+      router.replace(`/diary/${created.id}` as any);
     } catch {
       Alert.alert('오류', '일기 생성에 실패했어요. 다시 시도해주세요.');
     } finally {
