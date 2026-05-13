@@ -72,15 +72,6 @@ export default function HomeScreen() {
             당신의 오늘을 한 페이지로 정리해드릴게요.
           </Text>
 
-          {/* Keyword Chips */}
-          <View style={styles.chipsRow}>
-            {keywordChips.map((chip) => (
-              <View key={chip} style={styles.chip}>
-                <Text style={styles.chipText}>{chip}</Text>
-              </View>
-            ))}
-          </View>
-
           {/* CTA Button */}
           <TouchableOpacity
             style={styles.ctaButton}
@@ -201,34 +192,6 @@ const styles = StyleSheet.create({
     color: colors.gray,
     textAlign: "center",
     letterSpacing: 0.2,
-  },
-
-  // Keyword Chips
-  chipsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  chip: {
-    backgroundColor: colors.white,
-    borderRadius: 9999,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: colors.grayBorder,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 1,
-  },
-  chipText: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: "400",
   },
   // CTA Button
   ctaButton: {
