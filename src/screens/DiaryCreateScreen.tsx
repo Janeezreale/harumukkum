@@ -126,6 +126,7 @@ export default function DiaryCreateScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const [textInput, setTextInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
 
   const scrollRef = useRef<ScrollView>(null);
 
@@ -136,6 +137,20 @@ export default function DiaryCreateScreen() {
     setDraftAnswer({ [key]: value } as Partial<DiaryAnswer>);
     setTextInput('');
     setCurrentStep((step) => step + 1);
+  }
+
+  function handleEmotionToggle(id: string) {
+    setSelectedEmotions((prev) => {
+      if (prev.includes(id)) return prev.filter((e) => e !== id);
+      if (prev.length >= 3) return prev;
+      return [...prev, id];
+    });
+  }
+
+  function handleEmotionConfirm() {
+    if (selectedEmotions.length === 0) return;
+    handleAnswer('emotion', selectedEmotions.join(','));
+    setSelectedEmotions([]);
   }
 
   function handleTextSubmit() {
@@ -231,19 +246,35 @@ export default function DiaryCreateScreen() {
           )}
 
           {activeStep?.type === 'emotion' && (
-            <View style={styles.emotionGrid}>
-              {emotions.map((emotionOption) => (
-                <TouchableOpacity
-                  key={emotionOption.id}
-                  style={styles.emotionItem}
-                  onPress={() => handleAnswer('emotion', emotionOption.id)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.emotionEmoji}>{emotionOption.emoji}</Text>
-                  <Text style={styles.emotionLabel}>{emotionOption.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <>
+              <Text style={styles.emotionHint}>
+                최대 3개까지 고를 수 있어요 ({selectedEmotions.length}/3)
+              </Text>
+              <View style={styles.emotionGrid}>
+                {emotions.map((emotionOption) => {
+                  const isSelected = selectedEmotions.includes(emotionOption.id);
+                  const isDisabled = !isSelected && selectedEmotions.length >= 3;
+                  return (
+                    <TouchableOpacity
+                      key={emotionOption.id}
+                      style={[
+                        styles.emotionItem,
+                        isSelected && styles.emotionItemSelected,
+                        isDisabled && styles.emotionItemDisabled,
+                      ]}
+                      onPress={() => handleEmotionToggle(emotionOption.id)}
+                      activeOpacity={0.7}
+                      disabled={isDisabled}
+                    >
+                      <Text style={styles.emotionEmoji}>{emotionOption.emoji}</Text>
+                      <Text style={[styles.emotionLabel, isSelected && styles.emotionLabelSelected]}>
+                        {emotionOption.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
           )}
 
           {activeStep?.type === 'text' && (
@@ -324,7 +355,19 @@ export default function DiaryCreateScreen() {
         </ScrollView>
 
         <View style={styles.bottomBar}>
-          {activeStep?.type === 'text' ? (
+          {activeStep?.type === 'emotion' ? (
+            <TouchableOpacity
+              style={[
+                styles.generateBtn,
+                selectedEmotions.length === 0 && styles.generateBtnDisabled,
+              ]}
+              onPress={handleEmotionConfirm}
+              disabled={selectedEmotions.length === 0}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.generateBtnText}>선택 완료</Text>
+            </TouchableOpacity>
+          ) : activeStep?.type === 'text' ? (
             <TouchableOpacity
               style={[
                 styles.generateBtn,
@@ -424,6 +467,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
+  emotionHint: {
+    fontSize: 13,
+    color: colors.gray,
+    textAlign: 'center',
+    marginTop: 4,
+  },
   emotionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -436,6 +485,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     width: 56,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  emotionItemSelected: {
+    backgroundColor: 'rgba(97, 75, 190, 0.08)',
+    borderColor: colors.primary,
+  },
+  emotionItemDisabled: {
+    opacity: 0.3,
   },
   emotionEmoji: {
     fontSize: 32,
@@ -444,6 +504,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.gray,
     textAlign: 'center',
+  },
+  emotionLabelSelected: {
+    color: colors.primary,
+    fontWeight: '600',
   },
   textArea: {
     gap: 8,
