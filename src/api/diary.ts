@@ -1,0 +1,120 @@
+import { supabase } from "./supabase";
+
+type GenerateDiaryParams = {
+  diaryDate: string;
+
+  whenText: string;
+  whereText: string;
+  withWhomText: string;
+  whatText: string;
+
+  emotion: string;
+  reasonText: string;
+
+  imageUrls?: string[];
+};
+
+// 일기 생성
+export async function generateDiary(params: GenerateDiaryParams) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const response = await fetch(
+    `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/generate-diary`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session?.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(params),
+    },
+  );
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error);
+  }
+
+  return result.diary;
+}
+
+// 일기 목록 조회
+export async function getMyDiaries() {
+  const { data, error } = await supabase
+    .from("diaries")
+    .select("*")
+    .order("diary_date", {
+      ascending: false,
+    });
+
+  if (error) throw error;
+
+  return data;
+}
+
+// 날짜별 조회
+export async function getDiaryByDate(diaryDate: string) {
+  const { data, error } = await supabase
+    .from("diaries")
+    .select(
+      `
+      *,
+      diary_images (
+        image_url
+      )
+    `,
+    )
+    .eq("diary_date", diaryDate)
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+// 일기 수정
+export async function updateDiary(diaryId: string, content: string) {
+  const { data, error } = await supabase
+    .from("diaries")
+    .update({
+      content,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", diaryId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return data;
+}
+
+// 일기 삭제
+export async function deleteDiary(diaryId: string) {
+  const { error } = await supabase.from("diaries").delete().eq("id", diaryId);
+
+  if (error) throw error;
+}
+
+// 이미지 업로드
+export async function uploadDiaryImage(uri: string) {
+  const fileName = `${Date.now()}.jpg`;
+
+  const response = await fetch(uri);
+  const blob = await response.blob();
+
+  const { data, error } = await supabase.storage
+    .from("diary-images")
+    .upload(fileName, blob);
+
+  if (error) throw error;
+
+  const { data: publicUrl } = supabase.storage
+    .from("diary-images")
+    .getPublicUrl(data.path);
+
+  return publicUrl.publicUrl;
+}
