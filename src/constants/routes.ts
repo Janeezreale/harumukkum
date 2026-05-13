@@ -1,8 +1,10 @@
 export const routes = {
   home: "/(tabs)",
+  diary: "/(tabs)/diary",
   create: "/(tabs)/create",
-  library: "/(tabs)/library",
   report: "/(tabs)/report",
+  friends: "/(tabs)/friends",
   login: "/auth/login",
-  diaryDetail: (id: string) => `/diary/${id}`,
-};
+  diaryDetail: (date: string) => `/diary/${date}`,
+  diaryEdit: (id: string) => `/diary/edit/${id}`,
+} as const;

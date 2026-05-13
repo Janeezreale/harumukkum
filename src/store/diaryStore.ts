@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getToday } from '../utils/date';
+import { getTodayDate } from '../utils/date';
 import type { DiaryAnswer } from '../types/diary';
 
 type DiaryState = {
@@ -13,7 +13,7 @@ type DiaryState = {
 };
 
 export const useDiaryStore = create<DiaryState>((set) => ({
-  selectedDate: getToday(),
+  selectedDate: getTodayDate(),
   draftAnswer: {},
   draftPhotoUri: null,
   setSelectedDate: (date) => set({ selectedDate: date }),

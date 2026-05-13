@@ -1,11 +1,98 @@
-import type { DiaryAnswer } from '../types/diary';
+export type DiaryValidationInput = {
+  when?: string;
+  where?: string;
+  withWhom?: string;
+  what?: string;
+  emotion?: string;
+  emotionReason?: string;
+};
 
-export function validateDiaryAnswer(draft: Partial<DiaryAnswer>): string | null {
-  if (!draft.emotion) return '오늘 감정을 선택해주세요.';
-  if (!draft.what_text?.trim()) return '무슨 일이 있었는지 입력해주세요.';
-  if (!draft.who_text?.trim()) return '누구와 있었는지 입력해주세요.';
-  if (!draft.when_text?.trim()) return '언제였는지 입력해주세요.';
-  if (!draft.where_text?.trim()) return '어디서였는지 입력해주세요.';
-  if (!draft.why_text?.trim()) return '왜 그랬는지 입력해주세요.';
-  return null;
+export type PhotoValidationInput = {
+  uri: string;
+  name?: string;
+  type?: string;
+  size?: number;
+};
+
+export type ValidationResult = {
+  isValid: boolean;
+  errors: string[];
+};
+
+export const DEFAULT_MAX_PHOTO_COUNT = 3;
+export const DEFAULT_MAX_PHOTO_SIZE = 5 * 1024 * 1024;
+
+function isBlank(value?: string) {
+  return !value || value.trim().length === 0;
+}
+
+function createResult(errors: string[]): ValidationResult {
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+export function validateRequiredDiaryAnswers(input: DiaryValidationInput): ValidationResult {
+  const errors: string[] = [];
+
+  if (isBlank(input.when)) {
+    errors.push("언제를 입력해 주세요.");
+  }
+
+  if (isBlank(input.where)) {
+    errors.push("어디서를 입력해 주세요.");
+  }
+
+  if (isBlank(input.withWhom)) {
+    errors.push("누구와를 입력해 주세요.");
+  }
+
+  if (isBlank(input.what)) {
+    errors.push("무엇을 했는지 입력해 주세요.");
+  }
+
+  if (isBlank(input.emotion)) {
+    errors.push("감정을 선택해 주세요.");
+  }
+
+  if (isBlank(input.emotionReason)) {
+    errors.push("감정의 이유를 입력해 주세요.");
+  }
+
+  return createResult(errors);
+}
+
+export function validatePhotos(
+  photos: PhotoValidationInput[] = [],
+  maxCount = DEFAULT_MAX_PHOTO_COUNT,
+  maxSize = DEFAULT_MAX_PHOTO_SIZE,
+): ValidationResult {
+  const errors: string[] = [];
+
+  if (photos.length > maxCount) {
+    errors.push(`사진은 최대 ${maxCount}장까지 첨부할 수 있습니다.`);
+  }
+
+  photos.forEach((photo, index) => {
+    if (isBlank(photo.uri)) {
+      errors.push(`${index + 1}번째 사진 파일을 확인해 주세요.`);
+    }
+
+    if (photo.size !== undefined && photo.size > maxSize) {
+      errors.push(`${index + 1}번째 사진은 ${Math.floor(maxSize / 1024 / 1024)}MB 이하만 첨부할 수 있습니다.`);
+    }
+  });
+
+  return createResult(errors);
+}
+
+export function validateDiaryCreateInput(
+  input: DiaryValidationInput,
+  photos: PhotoValidationInput[] = [],
+): ValidationResult {
+  const answerResult = validateRequiredDiaryAnswers(input);
+  const photoResult = validatePhotos(photos);
+
+  return createResult([...answerResult.errors, ...photoResult.errors]);
 }

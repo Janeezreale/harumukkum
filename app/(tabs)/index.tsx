@@ -1,1 +1,5 @@
-export { default } from "@/src/screens/HomeScreen";
+import HomeScreen from "../../src/screens/HomeScreen";
+
+export default function HomePage() {
+  return <HomeScreen />;
+}

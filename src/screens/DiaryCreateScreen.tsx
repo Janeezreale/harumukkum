@@ -16,8 +16,8 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../constants/colors';
-import { EMOTION_OPTIONS } from '../constants/emotions';
-import { validateDiaryAnswer } from '../utils/validation';
+import { emotions } from '../constants/emotions';
+import { validateRequiredDiaryAnswers } from '../utils/validation';
 import { useDiaryStore } from '../store/diaryStore';
 import type { DiaryAnswer, DiaryCreateInput } from '../types/diary';
 
@@ -54,7 +54,7 @@ function answerLabel(step: Step, draft: Partial<DiaryAnswer>): string {
   const value = draft[step.key];
   if (!value) return '';
   if (step.key === 'emotion') {
-    const opt = EMOTION_OPTIONS.find((e) => e.value === value);
+    const opt = emotions.find((e) => e.id === value);
     return opt ? `${opt.emoji} ${opt.label}` : String(value);
   }
   return String(value);
@@ -108,9 +108,16 @@ export default function DiaryCreateScreen() {
   }
 
   async function handleGenerate() {
-    const error = validateDiaryAnswer(draftAnswer);
-    if (error) {
-      Alert.alert('입력 확인', error);
+    const result = validateRequiredDiaryAnswers({
+      when: draftAnswer.when_text,
+      where: draftAnswer.where_text,
+      withWhom: draftAnswer.who_text,
+      what: draftAnswer.what_text,
+      emotion: draftAnswer.emotion,
+      emotionReason: draftAnswer.why_text,
+    });
+    if (!result.isValid) {
+      Alert.alert('입력 확인', result.errors[0]);
       return;
     }
     setIsLoading(true);
@@ -195,14 +202,14 @@ export default function DiaryCreateScreen() {
             </View>
           )}
 
-          {/* 감정 이모지 선택 (Q1) */}
+          {/* 감정 이모지 선택 (Q1) — 대표 5개 표시 */}
           {activeStep?.type === 'emotion' && (
             <View style={styles.emotionRow}>
-              {EMOTION_OPTIONS.map((opt) => (
+              {emotions.slice(0, 5).map((opt) => (
                 <TouchableOpacity
-                  key={opt.value}
+                  key={opt.id}
                   style={styles.emotionBtn}
-                  onPress={() => handleAnswer('emotion', opt.value)}
+                  onPress={() => handleAnswer('emotion', opt.id)}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.emotionEmoji}>{opt.emoji}</Text>
