@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import type { User } from "../types/user";
 
 type SignUpParams = {
   email: string;
@@ -6,6 +7,25 @@ type SignUpParams = {
   username: string;
   nickname: string;
 };
+
+export async function getUserProfile(userId: string): Promise<User> {
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, email, username, nickname, profile_image_url, created_at")
+    .eq("id", userId)
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    email: data.email,
+    username: data.username,
+    nickname: data.nickname,
+    profile_image_url: data.profile_image_url ?? null,
+    created_at: data.created_at ?? null,
+  };
+}
 
 export async function signUp(params: SignUpParams) {
   const { email, password, username, nickname } = params;
@@ -45,7 +65,12 @@ export async function signUp(params: SignUpParams) {
 
   if (profileError) throw profileError;
 
-  return data;
+  const profile = await getUserProfile(userId);
+
+  return {
+    user: profile,
+    session: data.session,
+  };
 }
 
 export async function signIn(email: string, password: string) {
@@ -56,7 +81,16 @@ export async function signIn(email: string, password: string) {
 
   if (error) throw error;
 
-  return data;
+  if (!data.user) {
+    throw new Error("로그인 실패");
+  }
+
+  const profile = await getUserProfile(data.user.id);
+
+  return {
+    user: profile,
+    session: data.session,
+  };
 }
 
 export async function signOut() {
@@ -67,8 +101,17 @@ export async function signOut() {
 
 export async function getCurrentUser() {
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  return user;
+  if (!session?.user) {
+    return null;
+  }
+
+  const user = await getUserProfile(session.user.id);
+
+  return {
+    user,
+    session,
+  };
 }

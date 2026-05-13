@@ -6,7 +6,7 @@ type AuthState = {
   user: User | null;
   session: Session | null;
   isLoggedIn: boolean;
-  setAuth: (payload: { user: User; session: Session }) => void;
+  setAuth: (payload: { user: User; session: Session | null }) => void;
   clearAuth: () => void;
 };
 

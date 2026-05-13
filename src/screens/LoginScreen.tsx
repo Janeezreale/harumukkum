@@ -7,20 +7,48 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/colors';
+import { signIn } from '../api/auth';
+import { useAuthStore } from '../store/authStore';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const setAuth = useAuthStore((state) => state.setAuth);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleLogin() {
-    // TODO: replace with api/auth.signIn
-    router.replace('/(tabs)');
+  async function handleLogin() {
+    if (isSubmitting) return;
+
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail || !password) {
+      setErrorMessage('이메일과 비밀번호를 입력해 주세요.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setErrorMessage('');
+
+      const auth = await signIn(trimmedEmail, password);
+      setAuth(auth);
+      router.replace('/(tabs)');
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : '로그인 중 문제가 발생했습니다.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -29,31 +57,20 @@ export default function LoginScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Decorative blur element */}
-        <View style={styles.decorCircle} />
-
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity hitSlop={8} onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={22} color={colors.text} />
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>로그인</Text>
         </View>
 
         <View style={styles.content}>
-          {/* Title */}
-          <View style={styles.titleGroup}>
-            <Text style={styles.appName}>하루묶음</Text>
-            <Text style={styles.subtitle}>오늘 하루를 기록해보세요</Text>
-          </View>
-
           {/* Form Card */}
           <View style={styles.formCard}>
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>이메일</Text>
+              <Text style={styles.label}>Email</Text>
               <TextInput
                 style={styles.input}
-                placeholder="이메일을 입력해주세요"
-                placeholderTextColor={colors.placeholder}
+                placeholder="이메일"
+                placeholderTextColor={colors.gray}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -62,11 +79,11 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>비밀번호</Text>
+              <Text style={styles.label}>Password</Text>
               <TextInput
                 style={styles.input}
-                placeholder="비밀번호를 입력해주세요"
-                placeholderTextColor={colors.placeholder}
+                placeholder="비밀번호"
+                placeholderTextColor={colors.gray}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -74,21 +91,26 @@ export default function LoginScreen() {
             </View>
 
             <TouchableOpacity
-              style={styles.loginButton}
+              style={[styles.loginButton, isSubmitting && styles.disabledButton]}
               onPress={handleLogin}
               activeOpacity={0.85}
+              disabled={isSubmitting}
             >
-              <Text style={styles.loginButtonText}>로그인</Text>
+              {isSubmitting ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.loginButtonText}>Login</Text>
+              )}
+            </TouchableOpacity>
+
+            {errorMessage ? (
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            ) : null}
+
+            <TouchableOpacity onPress={() => router.push('/auth/signup' as any)}>
+              <Text style={styles.signupLink}>회원가입</Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.signupRow}
-            onPress={() => router.push('/auth/signup' as any)}
-          >
-            <Text style={styles.signupText}>아직 계정이 없으신가요? </Text>
-            <Text style={styles.signupLink}>회원가입</Text>
-          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -101,106 +123,76 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   flex: { flex: 1 },
-  decorCircle: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(97, 75, 190, 0.05)',
-    top: -80,
-    right: -60,
-  },
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    position: 'relative',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.black,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    gap: 28,
-  },
-  titleGroup: {
-    gap: 6,
-  },
-  appName: {
-    fontSize: 32,
-    fontWeight: '500',
-    color: colors.black,
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: colors.gray,
-    fontWeight: '400',
+    paddingHorizontal: 20,
+    paddingTop: 24,
   },
   formCard: {
     backgroundColor: colors.white,
     borderRadius: 16,
     padding: 24,
     gap: 20,
-    borderWidth: 1,
-    borderColor: colors.grayBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 2,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   fieldGroup: {
     gap: 8,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.text,
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.black,
   },
   input: {
-    height: 50,
+    height: 48,
     borderWidth: 1,
     borderColor: colors.grayBorder,
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 15,
-    color: colors.text,
+    color: colors.black,
     backgroundColor: colors.white,
   },
   loginButton: {
     backgroundColor: colors.black,
     borderRadius: 12,
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
   },
   loginButtonText: {
     color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
-  signupRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+  disabledButton: {
+    opacity: 0.6,
   },
-  signupText: {
-    fontSize: 14,
-    color: colors.gray,
+  errorText: {
+    color: colors.negative,
+    fontSize: 13,
+    lineHeight: 18,
   },
   signupLink: {
     fontSize: 14,
-    color: colors.primary,
-    fontWeight: '600',
+    color: colors.gray,
+    textDecorationLine: 'underline',
   },
 });
