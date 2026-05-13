@@ -292,9 +292,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#DDD6FE",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: colors.primaryPale,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   insightIcon: {
     fontSize: 18,

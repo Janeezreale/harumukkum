@@ -1,5 +1,6 @@
 import { Link } from "expo-router";
 import { View, Text, StyleSheet } from "react-native";
+import { colors } from "../constants/colors";
 
 type DiaryEditScreenProps = {
   id: string;
@@ -27,7 +28,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.white,
   },
   title: {
     fontSize: 28,
@@ -36,17 +37,17 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: "#666666",
+    color: colors.gray,
     marginBottom: 32,
   },
   link: {
     fontSize: 18,
-    color: "#7C121C",
+    color: colors.primary,
     fontWeight: "600",
     marginBottom: 16,
   },
   backLink: {
     fontSize: 16,
-    color: "#666666",
+    color: colors.gray,
   },
 });
