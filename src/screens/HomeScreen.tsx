@@ -52,12 +52,10 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity hitSlop={8} style={styles.headerIconBtn}>
-          <Ionicons name="chevron-back" size={20} color={colors.text} />
-        </TouchableOpacity>
+        <View style={styles.headerIconBtn} />
         <Text style={styles.headerTitle}>하루묶음</Text>
-        <TouchableOpacity hitSlop={8} style={styles.headerIconBtn} onPress={() => router.push('/mypage')}>
-          <Ionicons name="notifications-outline" size={20} color={colors.text} />
+        <TouchableOpacity hitSlop={8} style={styles.headerIconBtn} onPress={() => router.push("/mypage")}>
+          <Ionicons name="person-outline" size={20} color={colors.text} />
         </TouchableOpacity>
       </View>
 
