@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/colors';
 import type { Diary } from '../types/diary';
-import { getDiaryByDate, getDiaryById } from '../api/diary';
+import { deleteDiary, getDiaryByDate, getDiaryById } from '../api/diary';
 import { useDiaryStore } from '../store/diaryStore';
 
 function showToast(message: string) {
@@ -46,10 +46,11 @@ export default function DiaryDetailScreen() {
   const diaryId = Array.isArray(id) ? id[0] : id ?? '';
   const diaryDate = Array.isArray(date) ? date[0] : date ?? '';
   const routeDiaryKey = diaryId || diaryDate;
-  const { lastGeneratedDiary } = useDiaryStore();
+  const { lastGeneratedDiary, setLastGeneratedDiary } = useDiaryStore();
 
   const [diary, setDiary] = useState<Diary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
@@ -91,17 +92,33 @@ export default function DiaryDetailScreen() {
   }, [lastGeneratedDiary, routeDiaryKey]);
 
   function handleDelete() {
+    if (!diary || isDeleting) return;
+    setMenuVisible(false);
+
     Alert.alert('일기 삭제', '이 일기를 삭제하시겠어요?', [
       { text: '취소', style: 'cancel' },
       {
         text: '삭제',
         style: 'destructive',
         onPress: async () => {
-          router.back();
+          setIsDeleting(true);
+          try {
+            await deleteDiary(diary.id);
+            if (lastGeneratedDiary?.id === diary.id) {
+              setLastGeneratedDiary(null);
+            }
+            showToast('일기가 삭제되었어요');
+            router.replace('/(tabs)/diary');
+          } catch (error) {
+            console.error('Diary delete failed', error);
+            const message = error instanceof Error ? error.message : '일기 삭제에 실패했어요.';
+            Alert.alert('삭제 실패', message);
+          } finally {
+            setIsDeleting(false);
+          }
         },
       },
     ]);
-    setMenuVisible(false);
   }
 
   function handleApprove() {
@@ -151,8 +168,14 @@ export default function DiaryDetailScreen() {
       {/* Dropdown menu */}
       {menuVisible && (
         <View style={styles.dropdown}>
-          <TouchableOpacity style={styles.dropdownItem} onPress={handleDelete}>
-            <Text style={styles.dropdownDelete}>삭제하기</Text>
+          <TouchableOpacity
+            style={styles.dropdownItem}
+            onPress={handleDelete}
+            disabled={isDeleting}
+          >
+            <Text style={styles.dropdownDelete}>
+              {isDeleting ? '삭제 중...' : '삭제하기'}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
