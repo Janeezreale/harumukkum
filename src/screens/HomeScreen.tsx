@@ -52,12 +52,10 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity hitSlop={8} style={styles.headerIconBtn}>
-          <Ionicons name="chevron-back" size={20} color={colors.text} />
-        </TouchableOpacity>
+        <View style={{ width: 36 }} />
         <Text style={styles.headerTitle}>하루묶음</Text>
-        <TouchableOpacity hitSlop={8} style={styles.headerIconBtn} onPress={() => router.push('/mypage')}>
-          <Ionicons name="notifications-outline" size={20} color={colors.text} />
+        <TouchableOpacity hitSlop={8} style={styles.headerIconBtn} onPress={() => router.push('/mypage' as any)}>
+          <Ionicons name="person-outline" size={20} color={colors.black} />
         </TouchableOpacity>
       </View>
 
@@ -82,9 +80,6 @@ export default function HomeScreen() {
                 <Text style={styles.chipText}>{chip}</Text>
               </View>
             ))}
-            <TouchableOpacity style={styles.chipAdd} activeOpacity={0.7}>
-              <Ionicons name="add" size={16} color={colors.primary} />
-            </TouchableOpacity>
           </View>
 
           {/* CTA Button */}
@@ -236,18 +231,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: "400",
   },
-  chipAdd: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(97, 75, 190, 0.04)",
-  },
-
   // CTA Button
   ctaButton: {
     flexDirection: "row",

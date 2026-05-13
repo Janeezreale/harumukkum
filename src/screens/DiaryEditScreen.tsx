@@ -60,8 +60,10 @@ export default function DiaryEditScreen() {
         if (!mounted) return;
 
         setDiary(data);
-        setTitle(getDiaryTitle(data));
-        setContent(getDiaryContent(data));
+        if (data) {
+          setTitle(getDiaryTitle(data));
+          setContent(getDiaryContent(data));
+        }
       } catch (error) {
         console.error('Diary edit load failed', error);
         if (mounted) {
