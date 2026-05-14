@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { generateDiary } from '../api/diary';
 import { useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,12 +19,7 @@ import { colors } from '../constants/colors';
 import { emotions } from '../constants/emotions';
 import { validateRequiredDiaryAnswers } from '../utils/validation';
 import { useDiaryStore } from '../store/diaryStore';
-import { generateDiary } from '../api/diary';
 import type { DiaryAnswer } from '../types/diary';
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : '알 수 없는 오류가 발생했어요.';
-}
 
 type StepKey = keyof DiaryAnswer;
 
@@ -178,6 +174,8 @@ export default function DiaryCreateScreen() {
     setIsLoading(true);
 
     try {
+      const imageUrls = draftPhotoUri ? [draftPhotoUri] : [];
+      
       const created = await generateDiary({
         diaryDate: selectedDate,
         emotion: draftAnswer.emotion!,
