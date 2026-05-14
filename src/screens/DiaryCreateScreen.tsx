@@ -174,8 +174,6 @@ export default function DiaryCreateScreen() {
     setIsLoading(true);
 
     try {
-      const imageUrls = draftPhotoUri ? [draftPhotoUri] : [];
-      
       const created = await generateDiary({
         diaryDate: selectedDate,
         emotion: draftAnswer.emotion!,
@@ -190,7 +188,7 @@ export default function DiaryCreateScreen() {
       router.replace(`/diary/${created.id}` as any);
     } catch (error) {
       console.error('Diary generation failed', error);
-      Alert.alert('일기 생성 실패', getErrorMessage(error));
+      Alert.alert('일기 생성 실패', error instanceof Error ? error.message : '알 수 없는 오류가 발생했어요.');
     } finally {
       setIsLoading(false);
     }
