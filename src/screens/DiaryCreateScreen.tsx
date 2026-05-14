@@ -18,8 +18,18 @@ import { colors } from '../constants/colors';
 import { emotions } from '../constants/emotions';
 import { validateRequiredDiaryAnswers } from '../utils/validation';
 import { useDiaryStore } from '../store/diaryStore';
-import { generateDiary, uploadDiaryImage } from '../api/diary';
-import type { DiaryAnswer } from '../types/diary';
+import type { DiaryAnswer, DiaryCreateInput } from '../types/diary';
+
+// TODO: replace with api/diary.createDiary(input)
+async function mockCreateDiary(input: DiaryCreateInput) {
+  await new Promise((r) => setTimeout(r, 1000));
+
+  return {
+    id: 'mock-' + Date.now(),
+    ...input,
+    body: 'AI가 생성한 본문: 오늘 하루도 수고했어요.',
+  };
+}
 
 type StepKey = keyof DiaryAnswer;
 
@@ -120,6 +130,7 @@ export default function DiaryCreateScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const [textInput, setTextInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
 
   const scrollRef = useRef<ScrollView>(null);
 
@@ -130,6 +141,20 @@ export default function DiaryCreateScreen() {
     setDraftAnswer({ [key]: value } as Partial<DiaryAnswer>);
     setTextInput('');
     setCurrentStep((step) => step + 1);
+  }
+
+  function handleEmotionToggle(id: string) {
+    setSelectedEmotions((prev) => {
+      if (prev.includes(id)) return prev.filter((e) => e !== id);
+      if (prev.length >= 3) return prev;
+      return [...prev, id];
+    });
+  }
+
+  function handleEmotionConfirm() {
+    if (selectedEmotions.length === 0) return;
+    handleAnswer('emotion', selectedEmotions.join(','));
+    setSelectedEmotions([]);
   }
 
   function handleTextSubmit() {
@@ -148,6 +173,8 @@ export default function DiaryCreateScreen() {
 
   async function handleGenerate() {
     const result = validateRequiredDiaryAnswers({
+      when: draftAnswer.when_text,
+      where: draftAnswer.where_text,
       withWhom: draftAnswer.who_text,
       what: draftAnswer.what_text,
       emotion: draftAnswer.emotion,
@@ -162,14 +189,19 @@ export default function DiaryCreateScreen() {
     setIsLoading(true);
 
     try {
-      let imageUrls: string[] = [];
+      const input: DiaryCreateInput = {
+        diary_date: selectedDate,
+        emotion: draftAnswer.emotion!,
+        what_text: draftAnswer.what_text ?? '',
+        who_text: draftAnswer.who_text ?? '',
+        when_text: draftAnswer.when_text ?? '',
+        where_text: draftAnswer.where_text ?? '',
+        why_text: draftAnswer.why_text ?? '',
+        photo_url: draftPhotoUri ?? null,
+        is_public: false,
+      };
 
-      if (draftPhotoUri) {
-        const imageUrl = draftPhotoUri.startsWith('http')
-          ? draftPhotoUri
-          : await uploadDiaryImage(draftPhotoUri);
-        imageUrls = [imageUrl];
-      }
+      const created = await mockCreateDiary(input);
 
       const created = await generateDiary({
         diaryDate: selectedDate,
@@ -206,9 +238,7 @@ export default function DiaryCreateScreen() {
 
           <Text style={styles.headerTitle}>오늘의 하루 조각</Text>
 
-          <TouchableOpacity hitSlop={8}>
-            <Ionicons name="diamond-outline" size={20} color={colors.black} />
-          </TouchableOpacity>
+          <View style={{ width: 22 }} />
         </View>
 
         <ScrollView
@@ -231,19 +261,35 @@ export default function DiaryCreateScreen() {
           )}
 
           {activeStep?.type === 'emotion' && (
-            <View style={styles.emotionRow}>
-              {emotions.slice(0, 5).map((emotionOption) => (
-                <TouchableOpacity
-                  key={emotionOption.id}
-                  onPress={() => handleAnswer('emotion', emotionOption.id)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.emotionEmoji}>
-                    {emotionOption.emoji}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <>
+              <Text style={styles.emotionHint}>
+                최대 3개까지 고를 수 있어요 ({selectedEmotions.length}/3)
+              </Text>
+              <View style={styles.emotionGrid}>
+                {emotions.map((emotionOption) => {
+                  const isSelected = selectedEmotions.includes(emotionOption.id);
+                  const isDisabled = !isSelected && selectedEmotions.length >= 3;
+                  return (
+                    <TouchableOpacity
+                      key={emotionOption.id}
+                      style={[
+                        styles.emotionItem,
+                        isSelected && styles.emotionItemSelected,
+                        isDisabled && styles.emotionItemDisabled,
+                      ]}
+                      onPress={() => handleEmotionToggle(emotionOption.id)}
+                      activeOpacity={0.7}
+                      disabled={isDisabled}
+                    >
+                      <Text style={styles.emotionEmoji}>{emotionOption.emoji}</Text>
+                      <Text style={[styles.emotionLabel, isSelected && styles.emotionLabelSelected]}>
+                        {emotionOption.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
           )}
 
           {activeStep?.type === 'text' && (
@@ -324,7 +370,19 @@ export default function DiaryCreateScreen() {
         </ScrollView>
 
         <View style={styles.bottomBar}>
-          {activeStep?.type === 'text' ? (
+          {activeStep?.type === 'emotion' ? (
+            <TouchableOpacity
+              style={[
+                styles.generateBtn,
+                selectedEmotions.length === 0 && styles.generateBtnDisabled,
+              ]}
+              onPress={handleEmotionConfirm}
+              disabled={selectedEmotions.length === 0}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.generateBtnText}>선택 완료</Text>
+            </TouchableOpacity>
+          ) : activeStep?.type === 'text' ? (
             <TouchableOpacity
               style={[
                 styles.generateBtn,
@@ -424,15 +482,47 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-  emotionRow: {
+  emotionHint: {
+    fontSize: 13,
+    color: colors.gray,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  emotionGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 20,
+    gap: 12,
     marginTop: 8,
     paddingVertical: 8,
   },
+  emotionItem: {
+    alignItems: 'center',
+    gap: 4,
+    width: 56,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  emotionItemSelected: {
+    backgroundColor: 'rgba(97, 75, 190, 0.08)',
+    borderColor: colors.primary,
+  },
+  emotionItemDisabled: {
+    opacity: 0.3,
+  },
   emotionEmoji: {
     fontSize: 32,
+  },
+  emotionLabel: {
+    fontSize: 11,
+    color: colors.gray,
+    textAlign: 'center',
+  },
+  emotionLabelSelected: {
+    color: colors.primary,
+    fontWeight: '600',
   },
   textArea: {
     gap: 8,
