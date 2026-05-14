@@ -36,9 +36,6 @@ const todayFragments = [
   },
 ];
 
-// TODO: replace with api/diary.getKeywordChips
-const keywordChips = ["#카페", "#설렘", "#지친 하루"];
-
 // TODO: replace with api/diary.getEmotionInsight
 const emotionInsight = {
   title: "오늘의 감정 톤을 감지했어요",
@@ -52,12 +49,8 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity hitSlop={8} style={styles.headerIconBtn}>
-          <Ionicons name="chevron-back" size={20} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>하루묶음</Text>
         <TouchableOpacity hitSlop={8} style={styles.headerIconBtn} onPress={() => router.push('/mypage')}>
-          <Ionicons name="notifications-outline" size={20} color={colors.text} />
+          <Ionicons name="person-circle-outline" size={26} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -74,18 +67,6 @@ export default function HomeScreen() {
           <Text style={styles.heroSubtitle}>
             당신의 오늘을 한 페이지로 정리해드릴게요.
           </Text>
-
-          {/* Keyword Chips */}
-          <View style={styles.chipsRow}>
-            {keywordChips.map((chip) => (
-              <View key={chip} style={styles.chip}>
-                <Text style={styles.chipText}>{chip}</Text>
-              </View>
-            ))}
-            <TouchableOpacity style={styles.chipAdd} activeOpacity={0.7}>
-              <Ionicons name="add" size={16} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
 
           {/* CTA Button */}
           <TouchableOpacity
@@ -154,12 +135,15 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: colors.background,
+    position: "relative",
   },
   headerIconBtn: {
+    position: "absolute",
+    right: 16,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -207,45 +191,6 @@ const styles = StyleSheet.create({
     color: colors.gray,
     textAlign: "center",
     letterSpacing: 0.2,
-  },
-
-  // Keyword Chips
-  chipsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  chip: {
-    backgroundColor: colors.white,
-    borderRadius: 9999,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: colors.grayBorder,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 1,
-  },
-  chipText: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: "400",
-  },
-  chipAdd: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(97, 75, 190, 0.04)",
   },
 
   // CTA Button

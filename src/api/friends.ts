@@ -1,5 +1,54 @@
 import { supabase } from "./supabase";
 
+type FriendProfile = {
+  id: string;
+  username: string;
+  nickname: string;
+  profile_image_url: string | null;
+};
+
+type FriendshipRow = {
+  id: string;
+  requester_id: string;
+  receiver_id: string;
+  status: string;
+  created_at: string;
+  requester: FriendProfile | FriendProfile[] | null;
+  receiver: FriendProfile | FriendProfile[] | null;
+};
+
+export type FriendRequest = {
+  id: string;
+  requester: FriendProfile;
+  created_at: string;
+};
+
+export type FriendListItem = {
+  friendship_id: string;
+  friend: FriendProfile;
+  created_at: string;
+};
+
+function normalizeRelation<T>(value: T | T[] | null): T | null {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value;
+}
+
+async function getAuthenticatedUserId() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("로그인이 필요합니다.");
+  }
+
+  return user.id;
+}
+
 // 유저 검색
 export async function searchUsers(keyword: string) {
   const { data, error } = await supabase
@@ -18,6 +67,73 @@ export async function searchUsers(keyword: string) {
   if (error) throw error;
 
   return data;
+}
+
+// 받은 친구 요청 목록
+export async function getReceivedFriendRequests(): Promise<FriendRequest[]> {
+  const userId = await getAuthenticatedUserId();
+
+  const { data, error } = await supabase
+    .from("friendships")
+    .select(
+      `
+      id,
+      created_at,
+      requester:requester_id (
+        id,
+        username,
+        nickname,
+        profile_image_url
+      )
+    `,
+    )
+    .eq("receiver_id", userId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return ((data ?? []) as FriendshipRow[])
+    .map((request) => {
+      const requester = normalizeRelation(request.requester);
+
+      if (!requester) return null;
+
+      return {
+        id: request.id,
+        requester,
+        created_at: request.created_at,
+      };
+    })
+    .filter((request): request is FriendRequest => request !== null);
+}
+
+// 친구 요청 수락
+export async function acceptFriendRequest(requestId: string) {
+  const userId = await getAuthenticatedUserId();
+
+  const { error } = await supabase
+    .from("friendships")
+    .update({ status: "accepted" })
+    .eq("id", requestId)
+    .eq("receiver_id", userId)
+    .eq("status", "pending");
+
+  if (error) throw error;
+}
+
+// 친구 요청 거절
+export async function rejectFriendRequest(requestId: string) {
+  const userId = await getAuthenticatedUserId();
+
+  const { error } = await supabase
+    .from("friendships")
+    .delete()
+    .eq("id", requestId)
+    .eq("receiver_id", userId)
+    .eq("status", "pending");
+
+  if (error) throw error;
 }
 
 // 친구 요청
@@ -40,18 +156,20 @@ export async function sendFriendRequest(receiverId: string) {
 }
 
 // 친구 목록
-export async function getFriends() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return [];
+export async function getFriends(): Promise<FriendListItem[]> {
+  const userId = await getAuthenticatedUserId();
 
   const { data, error } = await supabase
     .from("friendships")
     .select(
       `
       *,
+      requester:requester_id (
+        id,
+        username,
+        nickname,
+        profile_image_url
+      ),
       receiver:receiver_id (
         id,
         username,
@@ -60,12 +178,28 @@ export async function getFriends() {
       )
     `,
     )
-    .eq("requester_id", user.id)
-    .eq("status", "accepted");
+    .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`)
+    .eq("status", "accepted")
+    .order("created_at", { ascending: false });
 
   if (error) throw error;
 
-  return data;
+  return ((data ?? []) as FriendshipRow[])
+    .map((friendship) => {
+      const requester = normalizeRelation(friendship.requester);
+      const receiver = normalizeRelation(friendship.receiver);
+      const friend =
+        friendship.requester_id === userId ? receiver : requester;
+
+      if (!friend) return null;
+
+      return {
+        friendship_id: friendship.id,
+        friend,
+        created_at: friendship.created_at,
+      };
+    })
+    .filter((friend): friend is FriendListItem => friend !== null);
 }
 
 // 찌르기

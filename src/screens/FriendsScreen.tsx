@@ -8,117 +8,89 @@ import {
   Image,
   TouchableOpacity,
   TextInput,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../constants/colors";
 
-type FriendProfile = {
+type Friend = {
   id: string;
   name: string;
   profileImage: string;
-  isOnline: boolean;
+  hasWrittenToday: boolean;
+  canPoke: boolean;
+  lastSnippet?: string;
 };
 
-type DiaryPost = {
-  id: string;
-  author: FriendProfile;
-  timeAgo: string;
-  title: string;
-  tags: string[];
-  images: string[];
-  likes: number;
-  comments: number;
-  content?: string;
-};
-
-const FRIEND_PROFILES: FriendProfile[] = [
+const MOCK_FRIENDS: Friend[] = [
   {
     id: "1",
     name: "지은",
     profileImage:
       "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100",
-    isOnline: true,
+    hasWrittenToday: true,
+    canPoke: false,
+    lastSnippet: "오늘의 나를 표현하는 단어들: 설렘, 도전, 고마움",
   },
   {
     id: "2",
     name: "민수",
     profileImage:
       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
-    isOnline: false,
+    hasWrittenToday: false,
+    canPoke: true,
   },
   {
     id: "3",
     name: "서연",
     profileImage:
       "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100",
-    isOnline: false,
+    hasWrittenToday: true,
+    canPoke: false,
+    lastSnippet: "카페에서 조용히 하루를 마무리한 날",
   },
   {
     id: "4",
     name: "하은",
     profileImage:
       "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100",
-    isOnline: false,
-  },
-];
-
-const MOCK_POSTS: DiaryPost[] = [
-  {
-    id: "1",
-    author: FRIEND_PROFILES[0],
-    timeAgo: "1시간 전",
-    title: "오늘의 나를 표현하는 단어들",
-    tags: ["#설렘", "#도전", "#고마움"],
-    images: [
-      "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300",
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300",
-    ],
-    likes: 3,
-    comments: 2,
-  },
-  {
-    id: "2",
-    author: {
-      id: "5",
-      name: "민주",
-      profileImage:
-        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
-      isOnline: false,
-    },
-    timeAgo: "3시간 전",
-    title: "",
-    tags: [],
-    images: [],
-    likes: 0,
-    comments: 0,
-    content:
-      "오늘은 정말 벅찼던 하루였어. 오랜만에 만난 친구와 보낸 시간이 너무 소중했고...",
+    hasWrittenToday: false,
+    canPoke: true,
   },
 ];
 
 export default function FriendsScreen() {
-  const [commentText, setCommentText] = useState("");
+  const [friends, setFriends] = useState<Friend[]>(MOCK_FRIENDS);
+  const [searchText, setSearchText] = useState("");
+
+  const notWritten = friends.filter((f) => !f.hasWrittenToday);
+  const written = friends.filter((f) => f.hasWrittenToday);
+
+  function handlePoke(friendId: string) {
+    setFriends((prev) =>
+      prev.map((f) =>
+        f.id === friendId ? { ...f, canPoke: false } : f
+      )
+    );
+    const friend = friends.find((f) => f.id === friendId);
+    Alert.alert("찌르기 완료", `${friend?.name}님을 찔렀어요!`);
+  }
+
+  function handleAddFriend() {
+    if (!searchText.trim()) return;
+    Alert.alert("친구 추가", `"${searchText.trim()}" 에게 친구 요청을 보냈어요.`);
+    setSearchText("");
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
+        <View style={{ width: 22 }} />
         <Text style={styles.headerTitle}>우리들의 방</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity hitSlop={8}>
-            <Ionicons name="person-outline" size={20} color={colors.black} />
-          </TouchableOpacity>
-          <TouchableOpacity hitSlop={8}>
-            <Ionicons
-              name="notifications-outline"
-              size={20}
-              color={colors.black}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity hitSlop={8}>
-            <Ionicons name="settings-outline" size={20} color={colors.black} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity hitSlop={8}>
+          <Ionicons name="settings-outline" size={20} color={colors.black} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -126,150 +98,108 @@ export default function FriendsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Friend Avatars */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.avatarRow}
-        >
-          {/* Add friend button */}
-          <View style={styles.avatarWrapper}>
-            <View style={styles.addAvatarCircle}>
-              <Ionicons name="add" size={20} color={colors.gray} />
-            </View>
-          </View>
-          {FRIEND_PROFILES.map((friend) => (
-            <TouchableOpacity key={friend.id} style={styles.avatarWrapper}>
-              <View
-                style={[
-                  styles.avatarBorder,
-                  friend.isOnline && styles.avatarBorderActive,
-                ]}
-              >
-                <Image
-                  source={{ uri: friend.profileImage }}
-                  style={styles.avatarImage}
-                />
-              </View>
-              {friend.isOnline && <View style={styles.onlineDot} />}
+        {/* Friend Search / Add */}
+        <View style={styles.searchRow}>
+          <Ionicons name="search" size={18} color={colors.gray} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="친구 검색 또는 추가..."
+            placeholderTextColor={colors.gray}
+            value={searchText}
+            onChangeText={setSearchText}
+            onSubmitEditing={handleAddFriend}
+            returnKeyType="send"
+          />
+          {searchText.trim() ? (
+            <TouchableOpacity onPress={handleAddFriend}>
+              <Ionicons name="person-add" size={20} color={colors.primary} />
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Date Header */}
-        <View style={styles.dateHeader}>
-          <Text style={styles.dateTitle}># 오늘의 일기</Text>
-          <View style={styles.dateSubRow}>
-            <Text style={styles.dateSubtext}>2024.05.26 일요일</Text>
-            <TouchableOpacity style={styles.writeBtn}>
-              <Ionicons name="pencil" size={14} color={colors.white} />
-              <Text style={styles.writeBtnText}>일기 쓰기</Text>
-            </TouchableOpacity>
-          </View>
+          ) : null}
         </View>
 
-        {/* Diary Posts */}
-        {MOCK_POSTS.map((post) => (
-          <View key={post.id} style={styles.postCard}>
-            {/* Post header */}
-            <View style={styles.postHeader}>
-              <Image
-                source={{ uri: post.author.profileImage }}
-                style={styles.postAvatar}
-              />
-              <View style={styles.postAuthorInfo}>
-                <Text style={styles.postAuthorName}>{post.author.name}</Text>
-                <Text style={styles.postTime}>{post.timeAgo}</Text>
+        {/* Not Written - Poke Section */}
+        {notWritten.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>아직 일기를 안 쓴 친구</Text>
+            {notWritten.map((friend) => (
+              <View key={friend.id} style={styles.friendCard}>
+                <Image
+                  source={{ uri: friend.profileImage }}
+                  style={styles.avatar}
+                />
+                <View style={styles.friendInfo}>
+                  <Text style={styles.friendName}>{friend.name}</Text>
+                  <Text style={styles.friendSub}>
+                    아직 오늘의 조각을 기록하지 않았어요.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.pokeBtn,
+                    !friend.canPoke && styles.pokeBtnDisabled,
+                  ]}
+                  onPress={() => handlePoke(friend.id)}
+                  disabled={!friend.canPoke}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="hand-left"
+                    size={14}
+                    color={friend.canPoke ? colors.white : colors.gray}
+                  />
+                  <Text
+                    style={[
+                      styles.pokeBtnText,
+                      !friend.canPoke && styles.pokeBtnTextDisabled,
+                    ]}
+                  >
+                    {friend.canPoke ? "찌르기" : "찌름!"}
+                  </Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity hitSlop={8}>
+            ))}
+          </>
+        )}
+
+        {/* Written - Diary Feed */}
+        {written.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>친구들의 일기</Text>
+            {written.map((friend) => (
+              <View key={friend.id} style={styles.friendCard}>
+                <Image
+                  source={{ uri: friend.profileImage }}
+                  style={styles.avatar}
+                />
+                <View style={styles.friendInfo}>
+                  <Text style={styles.friendName}>{friend.name}</Text>
+                  <Text style={styles.friendSnippet} numberOfLines={1}>
+                    {friend.lastSnippet}
+                  </Text>
+                </View>
                 <Ionicons
-                  name="ellipsis-horizontal"
+                  name="chevron-forward"
                   size={18}
                   color={colors.gray}
                 />
-              </TouchableOpacity>
-            </View>
-
-            {/* Title and tags */}
-            {post.title ? (
-              <Text style={styles.postTitle}>{post.title}</Text>
-            ) : null}
-
-            {post.tags.length > 0 && (
-              <View style={styles.tagRow}>
-                {post.tags.map((tag) => (
-                  <View key={tag} style={styles.tagChip}>
-                    <Text style={styles.tagText}>{tag}</Text>
-                  </View>
-                ))}
               </View>
-            )}
+            ))}
+          </>
+        )}
 
-            {/* Images */}
-            {post.images.length > 0 && (
-              <View style={styles.imageRow}>
-                {post.images.map((img, i) => (
-                  <Image
-                    key={i}
-                    source={{ uri: img }}
-                    style={styles.postImage}
-                  />
-                ))}
-              </View>
-            )}
-
-            {/* Content */}
-            {post.content ? (
-              <Text style={styles.postContent} numberOfLines={3}>
-                {post.content}
-              </Text>
-            ) : null}
-
-            {/* Engagement */}
-            {(post.likes > 0 || post.comments > 0) && (
-              <View style={styles.engagementRow}>
-                <View style={styles.engagementItem}>
-                  <Ionicons name="heart" size={16} color={colors.negative} />
-                  <Text style={styles.engagementText}>{post.likes}</Text>
-                </View>
-                <View style={styles.engagementItem}>
-                  <Ionicons
-                    name="chatbubble-outline"
-                    size={15}
-                    color={colors.gray}
-                  />
-                  <Text style={styles.engagementText}>
-                    댓글 {post.comments}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }} />
-                <TouchableOpacity>
-                  <Ionicons
-                    name="bookmark-outline"
-                    size={18}
-                    color={colors.gray}
-                  />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Comment input */}
-            {post.content && (
-              <View style={styles.commentInputRow}>
-                <TextInput
-                  style={styles.commentInput}
-                  placeholder="메시지 보내기..."
-                  placeholderTextColor={colors.gray}
-                  value={commentText}
-                  onChangeText={setCommentText}
-                />
-                <TouchableOpacity style={styles.commentSendBtn}>
-                  <Ionicons name="add-circle" size={24} color={colors.black} />
-                </TouchableOpacity>
-              </View>
-            )}
+        {friends.length === 0 && (
+          <View style={styles.emptyState}>
+            <Ionicons
+              name="people-outline"
+              size={64}
+              color={colors.grayBorder}
+            />
+            <Text style={styles.emptyTitle}>아직 친구가 없어요</Text>
+            <Text style={styles.emptySubtitle}>
+              위 검색창에서 친구를 추가해보세요.
+            </Text>
           </View>
-        ))}
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -288,176 +218,113 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     color: colors.black,
-    position: "absolute",
-    left: 0,
-    right: 0,
-    textAlign: "center",
   },
-  headerRight: { flexDirection: "row", gap: 16, alignItems: "center" },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 32, gap: 16 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 32, gap: 14 },
 
-  // Avatars
-  avatarRow: { paddingHorizontal: 20, gap: 14, paddingVertical: 4 },
-  avatarWrapper: { alignItems: "center", position: "relative" },
-  addAvatarCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1.5,
-    borderColor: colors.grayBorder,
-    borderStyle: "dashed",
-    justifyContent: "center",
+  // Search
+  searchRow: {
+    flexDirection: "row",
     alignItems: "center",
-  },
-  avatarBorder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2.5,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 10,
+    borderWidth: 1,
     borderColor: colors.grayBorder,
-    padding: 2,
   },
-  avatarBorderActive: {
-    borderColor: colors.primary,
-  },
-  avatarImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 28,
-  },
-  onlineDot: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.positive,
-    borderWidth: 2,
-    borderColor: colors.white,
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.black,
+    paddingVertical: 0,
   },
 
-  // Date header
-  dateHeader: {
-    paddingHorizontal: 20,
-    gap: 4,
+  // Section
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.black,
+    marginTop: 8,
   },
-  dateTitle: {
-    fontSize: 24,
-    fontWeight: "800",
+
+  // Friend card
+  friendCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.grayLight,
+  },
+  friendInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  friendName: {
+    fontSize: 15,
+    fontWeight: "600",
     color: colors.black,
   },
-  dateSubRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  friendSub: {
+    fontSize: 12,
+    color: colors.gray,
   },
-  dateSubtext: {
+  friendSnippet: {
     fontSize: 13,
     color: colors.gray,
   },
-  writeBtn: {
-    backgroundColor: colors.black,
+
+  // Poke button
+  pokeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.primary,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
   },
-  writeBtnText: {
+  pokeBtnDisabled: {
+    backgroundColor: colors.grayLight,
+  },
+  pokeBtnText: {
     fontSize: 13,
     fontWeight: "600",
     color: colors.white,
   },
+  pokeBtnTextDisabled: {
+    color: colors.gray,
+  },
 
-  // Post card
-  postCard: {
-    backgroundColor: colors.white,
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 16,
-    gap: 12,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  postHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  postAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.grayLight,
-  },
-  postAuthorInfo: { flex: 1, gap: 1 },
-  postAuthorName: { fontSize: 15, fontWeight: "600", color: colors.black },
-  postTime: { fontSize: 12, color: colors.gray },
-  postTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.black,
-    lineHeight: 22,
-  },
-  tagRow: { flexDirection: "row", gap: 6 },
-  tagChip: {
-    backgroundColor: colors.grayLight,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  tagText: { fontSize: 13, color: colors.black },
-  imageRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  postImage: {
-    flex: 1,
-    height: 120,
-    borderRadius: 12,
-    backgroundColor: colors.grayLight,
-  },
-  postContent: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.black,
-    lineHeight: 24,
-  },
-  engagementRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    paddingTop: 4,
-  },
-  engagementItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  engagementText: { fontSize: 13, color: colors.gray },
-
-  // Comment input
-  commentInputRow: {
-    flexDirection: "row",
+  // Empty
+  emptyState: {
     alignItems: "center",
     gap: 8,
-    backgroundColor: colors.grayLight,
-    borderRadius: 24,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 60,
   },
-  commentInput: {
-    flex: 1,
-    fontSize: 14,
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "600",
     color: colors.black,
-    paddingVertical: 4,
+    marginTop: 8,
   },
-  commentSendBtn: {},
+  emptySubtitle: {
+    fontSize: 13,
+    color: colors.gray,
+    textAlign: "center",
+  },
 });

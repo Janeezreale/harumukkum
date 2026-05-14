@@ -36,14 +36,6 @@ function createResult(errors: string[]): ValidationResult {
 export function validateRequiredDiaryAnswers(input: DiaryValidationInput): ValidationResult {
   const errors: string[] = [];
 
-  if (isBlank(input.when)) {
-    errors.push("언제를 입력해 주세요.");
-  }
-
-  if (isBlank(input.where)) {
-    errors.push("어디서를 입력해 주세요.");
-  }
-
   if (isBlank(input.withWhom)) {
     errors.push("누구와를 입력해 주세요.");
   }
