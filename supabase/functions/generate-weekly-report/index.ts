@@ -1,12 +1,27 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import OpenAI from "npm:openai";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      headers: corsHeaders,
+    });
+  }
+
   try {
     const authHeader = req.headers.get("Authorization");
 
     if (!authHeader) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return Response.json({ error: "Unauthorized" }, {
+        status: 401,
+        headers: corsHeaders,
+      });
     }
 
     const { weekStart, weekEnd } = await req.json();
@@ -27,7 +42,10 @@ Deno.serve(async (req) => {
     } = await supabase.auth.getUser(token);
 
     if (!user) {
-      return Response.json({ error: "Invalid user" }, { status: 401 });
+      return Response.json({ error: "Invalid user" }, {
+        status: 401,
+        headers: corsHeaders,
+      });
     }
 
     const { data: diaries, error } = await supabase
@@ -68,9 +86,14 @@ ${JSON.stringify(diaries)}
       input: prompt,
     });
 
-    const outputText = response.output_text ?? "{}";
+    const outputText = response.output_text ?? "";
+    let parsed;
 
-    const parsed = JSON.parse(outputText);
+    try {
+      parsed = JSON.parse(outputText);
+    } catch {
+      throw new Error("리포트 생성 응답을 읽지 못했습니다.");
+    }
 
     const { data: report, error: insertError } = await supabase
       .from("weekly_reports")
@@ -99,6 +122,8 @@ ${JSON.stringify(diaries)}
 
     return Response.json({
       report,
+    }, {
+      headers: corsHeaders,
     });
   } catch (error) {
     console.error(error);
@@ -109,6 +134,7 @@ ${JSON.stringify(diaries)}
       },
       {
         status: 500,
+        headers: corsHeaders,
       },
     );
   }
