@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,8 +12,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { colors } from "../constants/colors";
-import { signOut as signOutApi } from "../api/auth";
+import { signOut as signOutApi, uploadProfileImage } from "../api/auth";
 import { useAuthStore } from "../store/authStore";
 
 const DEFAULT_PROFILE = require("../../assets/images/profile.png");
@@ -22,7 +23,36 @@ export default function MyPageScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const clearAuth = useAuthStore((state) => state.clearAuth);
+  const updateUser = useAuthStore((state) => state.updateUser);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  async function handlePickProfileImage() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("권한 필요", "사진을 변경하려면 앨범 접근 권한이 필요해요.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (result.canceled) return;
+
+    setIsUploadingPhoto(true);
+    try {
+      const newUrl = await uploadProfileImage(result.assets[0].uri);
+      updateUser({ profile_image_url: newUrl });
+    } catch (error) {
+      Alert.alert("오류", error instanceof Error ? error.message : "사진 변경에 실패했어요.");
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  }
 
   async function handleSignOut() {
     if (isSigningOut) return;
@@ -69,7 +99,24 @@ export default function MyPageScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.profileCard}>
-          <Image source={profileSource} style={styles.profileImage} />
+          <TouchableOpacity
+            style={styles.avatarWrapper}
+            onPress={handlePickProfileImage}
+            disabled={isUploadingPhoto}
+            activeOpacity={0.8}
+          >
+            {isUploadingPhoto ? (
+              <View style={[styles.profileImage, styles.uploadingOverlay]}>
+                <ActivityIndicator color={colors.white} />
+              </View>
+            ) : (
+              <Image source={profileSource} style={styles.profileImage} />
+            )}
+            <View style={styles.cameraIcon}>
+              <Ionicons name="camera" size={12} color={colors.white} />
+            </View>
+          </TouchableOpacity>
+
           <View style={styles.profileInfo}>
             <Text style={styles.nickname} numberOfLines={1}>
               {user?.nickname ?? "사용자"}
@@ -120,11 +167,32 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  avatarWrapper: {
+    position: "relative",
+  },
   profileImage: {
     width: 64,
     height: 64,
     borderRadius: 32,
     backgroundColor: colors.grayLight,
+  },
+  uploadingOverlay: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  cameraIcon: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: colors.white,
   },
   profileInfo: { flex: 1, gap: 3 },
   nickname: { fontSize: 18, fontWeight: "700", color: colors.black },

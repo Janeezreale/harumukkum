@@ -29,7 +29,7 @@ export default function DiaryEditScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const diaryId = Array.isArray(id) ? id[0] : id ?? '';
-  const { lastGeneratedDiary } = useDiaryStore();
+  const { lastGeneratedDiary, setLastGeneratedDiary } = useDiaryStore();
 
   const [diary, setDiary] = useState<Diary | null>(null);
   const [title, setTitle] = useState('');
@@ -95,7 +95,11 @@ export default function DiaryEditScreen() {
         content: nextContent,
         is_public: isPublic,
       });
-      Alert.alert('저장 완료', '수정 내용이 저장되었습니다.', [
+      // 스토어에 캐시된 구버전 데이터가 있으면 초기화해서 디테일 화면이 DB에서 새로 불러오도록 함
+      if (lastGeneratedDiary?.id === diary.id) {
+        setLastGeneratedDiary(null);
+      }
+      Alert.alert('저장되었습니다.', '', [
         {
           text: '확인',
           onPress: () => router.replace(`/diary/${diary.id}` as any),

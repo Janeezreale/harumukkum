@@ -99,6 +99,34 @@ export async function signOut() {
   if (error) throw error;
 }
 
+export async function uploadProfileImage(uri: string): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('로그인이 필요합니다.');
+
+  const fileName = `${user.id}_${Date.now()}.jpg`;
+  const response = await fetch(uri);
+  const blob = await response.blob();
+
+  const { data, error } = await supabase.storage
+    .from('profile-images')
+    .upload(fileName, blob, { upsert: true });
+
+  if (error) throw error;
+
+  const { data: publicUrl } = supabase.storage
+    .from('profile-images')
+    .getPublicUrl(data.path);
+
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({ profile_image_url: publicUrl.publicUrl })
+    .eq('id', user.id);
+
+  if (updateError) throw updateError;
+
+  return publicUrl.publicUrl;
+}
+
 export async function getCurrentUser() {
   const {
     data: { session },
