@@ -7,8 +7,9 @@ import {
   SafeAreaView,
   Dimensions,
   ActivityIndicator,
+  Image,
 } from "react-native";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../constants/colors";
@@ -28,26 +29,59 @@ function getFirstDayOfMonth(year: number, month: number) {
   return new Date(year, month, 1).getDay();
 }
 
+function getDiaryImage(diary: Diary): string | null {
+  // diary_images 관계에서 가져오거나, thumbnail_url, photo_url 순서로 확인
+  const images = (diary as any).diary_images;
+  if (Array.isArray(images) && images.length > 0 && images[0].image_url) {
+    return images[0].image_url;
+  }
+  return diary.thumbnail_url ?? diary.photo_url ?? null;
+}
+
 export default function CalendarScreen() {
   const router = useRouter();
   const now = new Date();
-  const [year] = useState(now.getFullYear());
-  const [month] = useState(now.getMonth());
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth());
   const [diaryMap, setDiaryMap] = useState<Record<string, Diary>>({});
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    getMyDiaries()
-      .then((diaries) => {
-        const map: Record<string, Diary> = {};
-        diaries.forEach((d: Diary) => {
-          map[d.diary_date] = d;
-        });
-        setDiaryMap(map);
-      })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
+  const loadDiaries = useCallback(async () => {
+    try {
+      const diaries = await getMyDiaries();
+      const map: Record<string, Diary> = {};
+      diaries.forEach((d: Diary) => {
+        map[d.diary_date] = d;
+      });
+      setDiaryMap(map);
+    } catch {
+      // silent
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadDiaries();
+  }, [loadDiaries]);
+
+  function goToPrevMonth() {
+    if (month === 0) {
+      setYear((y) => y - 1);
+      setMonth(11);
+    } else {
+      setMonth((m) => m - 1);
+    }
+  }
+
+  function goToNextMonth() {
+    if (month === 11) {
+      setYear((y) => y + 1);
+      setMonth(0);
+    } else {
+      setMonth((m) => m + 1);
+    }
+  }
 
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
@@ -57,7 +91,8 @@ export default function CalendarScreen() {
   for (let d = 1; d <= daysInMonth; d++) gridCells.push(d);
 
   const monthLabel = `${year}년 ${month + 1}월`;
-  const today = now.getDate();
+  const todayDate = now.getDate();
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -80,7 +115,16 @@ export default function CalendarScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.monthLabel}>{monthLabel}</Text>
+          {/* Month Navigation */}
+          <View style={styles.monthNav}>
+            <TouchableOpacity onPress={goToPrevMonth} hitSlop={8}>
+              <Ionicons name="chevron-back" size={22} color={colors.black} />
+            </TouchableOpacity>
+            <Text style={styles.monthLabel}>{monthLabel}</Text>
+            <TouchableOpacity onPress={goToNextMonth} hitSlop={8}>
+              <Ionicons name="chevron-forward" size={22} color={colors.black} />
+            </TouchableOpacity>
+          </View>
 
           {/* Day of week headers */}
           <View style={styles.weekHeader}>
@@ -107,7 +151,8 @@ export default function CalendarScreen() {
 
               const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               const diary = diaryMap[dateStr];
-              const isToday = day === today;
+              const isToday = isCurrentMonth && day === todayDate;
+              const imageUrl = diary ? getDiaryImage(diary) : null;
 
               return (
                 <TouchableOpacity
@@ -118,17 +163,27 @@ export default function CalendarScreen() {
                     if (diary) router.push(`/diary/${diary.id}` as any);
                   }}
                 >
-                  <Text
-                    style={[
-                      styles.dayNumber,
-                      isToday && styles.dayNumberToday,
-                      diary && styles.dayNumberWithDiary,
-                    ]}
-                  >
-                    {day}
-                  </Text>
-                  {diary && (
-                    <View style={styles.diaryDot} />
+                  {imageUrl ? (
+                    <>
+                      <Image source={{ uri: imageUrl }} style={styles.dayImage} />
+                      <View style={styles.dayImageOverlay} />
+                      <Text style={[styles.dayNumber, styles.dayNumberOnImage]}>
+                        {day}
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text
+                        style={[
+                          styles.dayNumber,
+                          isToday && styles.dayNumberToday,
+                          diary && styles.dayNumberWithDiary,
+                        ]}
+                      >
+                        {day}
+                      </Text>
+                      {diary && <View style={styles.diaryDot} />}
+                    </>
                   )}
                 </TouchableOpacity>
               );
@@ -164,12 +219,18 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 32 },
 
+  // Month navigation
+  monthNav: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
   monthLabel: {
     fontSize: 18,
     fontWeight: "700",
     color: colors.black,
-    textAlign: "center",
-    marginBottom: 16,
   },
 
   // Week header
@@ -202,16 +263,31 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: colors.grayLight,
+    overflow: "hidden",
   },
   dayCellWithDiary: {
     backgroundColor: colors.primaryBg,
     borderWidth: 1,
     borderColor: colors.primaryBorder,
   },
+  dayImage: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    borderRadius: 10,
+  },
+  dayImageOverlay: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0,0,0,0.25)",
+    borderRadius: 10,
+  },
   dayNumber: {
     fontSize: 15,
     fontWeight: "600",
     color: colors.text,
+    zIndex: 1,
   },
   dayNumberToday: {
     color: colors.primary,
@@ -219,6 +295,13 @@ const styles = StyleSheet.create({
   },
   dayNumberWithDiary: {
     color: colors.primary,
+  },
+  dayNumberOnImage: {
+    color: colors.white,
+    fontWeight: "700",
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   diaryDot: {
     width: 5,
