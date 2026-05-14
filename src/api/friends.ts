@@ -49,24 +49,20 @@ async function getAuthenticatedUserId() {
   return user.id;
 }
 
-// 유저 검색
+// 유저 검색 (자기 자신 제외)
 export async function searchUsers(keyword: string) {
+  const userId = await getAuthenticatedUserId();
+
   const { data, error } = await supabase
     .from("users")
-    .select(
-      `
-      id,
-      username,
-      nickname,
-      profile_image_url
-    `,
-    )
+    .select(`id, username, nickname, profile_image_url`)
     .ilike("username", `%${keyword}%`)
+    .neq("id", userId)
     .limit(20);
 
   if (error) throw error;
 
-  return data;
+  return data ?? [];
 }
 
 // 받은 친구 요청 목록
@@ -138,19 +134,67 @@ export async function rejectFriendRequest(requestId: string) {
 
 // 친구 요청
 export async function sendFriendRequest(receiverId: string) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("로그인이 필요합니다.");
-  }
+  const userId = await getAuthenticatedUserId();
 
   const { error } = await supabase.from("friendships").insert({
-    requester_id: user.id,
+    requester_id: userId,
     receiver_id: receiverId,
     status: "pending",
   });
+
+  if (error) {
+    if (error.code === "23505") throw new Error("이미 친구 요청을 보냈거나 친구 관계입니다.");
+    throw error;
+  }
+}
+
+// 보낸 친구 요청 목록
+export type SentFriendRequest = {
+  id: string;
+  receiver: FriendProfile;
+  created_at: string;
+};
+
+export async function getSentFriendRequests(): Promise<SentFriendRequest[]> {
+  const userId = await getAuthenticatedUserId();
+
+  const { data, error } = await supabase
+    .from("friendships")
+    .select(`
+      id,
+      created_at,
+      receiver:receiver_id (
+        id,
+        username,
+        nickname,
+        profile_image_url
+      )
+    `)
+    .eq("requester_id", userId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return ((data ?? []) as FriendshipRow[])
+    .map((row) => {
+      const receiver = normalizeRelation(row.receiver);
+      if (!receiver) return null;
+      return { id: row.id, receiver, created_at: row.created_at };
+    })
+    .filter((r): r is SentFriendRequest => r !== null);
+}
+
+// 보낸 친구 요청 취소
+export async function cancelFriendRequest(requestId: string) {
+  const userId = await getAuthenticatedUserId();
+
+  const { error } = await supabase
+    .from("friendships")
+    .delete()
+    .eq("id", requestId)
+    .eq("requester_id", userId)
+    .eq("status", "pending");
 
   if (error) throw error;
 }
@@ -200,6 +244,69 @@ export async function getFriends(): Promise<FriendListItem[]> {
       };
     })
     .filter((friend): friend is FriendListItem => friend !== null);
+}
+
+// 친구 일기 피드
+export type FriendDiaryItem = {
+  id: string;
+  diary_date: string;
+  title: string | null;
+  content: string | null;
+  emotion: string | null;
+  thumbnail_url: string | null;
+  created_at: string;
+  author: {
+    id: string;
+    nickname: string;
+    username: string;
+    profile_image_url: string | null;
+  };
+};
+
+export async function getFriendDiaries(): Promise<FriendDiaryItem[]> {
+  const userId = await getAuthenticatedUserId();
+
+  const { data: friendships, error: friendsError } = await supabase
+    .from("friendships")
+    .select("requester_id, receiver_id")
+    .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`)
+    .eq("status", "accepted");
+
+  if (friendsError) throw friendsError;
+  if (!friendships || friendships.length === 0) return [];
+
+  const friendIds = friendships.map((f) =>
+    f.requester_id === userId ? f.receiver_id : f.requester_id
+  );
+
+  const { data, error } = await supabase
+    .from("diaries")
+    .select(`
+      id,
+      diary_date,
+      title,
+      content,
+      emotion,
+      thumbnail_url,
+      created_at,
+      author:user_id (
+        id,
+        nickname,
+        username,
+        profile_image_url
+      )
+    `)
+    .in("user_id", friendIds)
+    .eq("is_public", true)
+    .order("diary_date", { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+
+  return ((data ?? []) as any[]).map((item) => ({
+    ...item,
+    author: Array.isArray(item.author) ? item.author[0] : item.author,
+  })) as FriendDiaryItem[];
 }
 
 // 찌르기

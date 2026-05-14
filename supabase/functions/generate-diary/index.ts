@@ -128,6 +128,7 @@ JSON 형식:
 
           thumbnail_url: imageUrls.length > 0 ? imageUrls[0] : null,
 
+          is_public: true,
           updated_at: new Date().toISOString(),
         },
         {

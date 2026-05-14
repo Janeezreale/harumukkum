@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -7,197 +7,242 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  TextInput,
+  ActivityIndicator,
+  RefreshControl,
   Alert,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../constants/colors";
+import { emotions } from "../constants/emotions";
+import {
+  getFriends,
+  getFriendDiaries,
+  pokeFriend,
+  type FriendListItem,
+  type FriendDiaryItem,
+} from "../api/friends";
+import { formatDiaryDateShort } from "../utils/date";
 
-type Friend = {
-  id: string;
-  name: string;
-  profileImage: string;
-  hasWrittenToday: boolean;
-  canPoke: boolean;
-  lastSnippet?: string;
-};
+function getEmoji(emotionId: string | null): string {
+  if (!emotionId) return "";
+  return emotions.find((e) => e.id === emotionId)?.emoji ?? "";
+}
 
-const MOCK_FRIENDS: Friend[] = [
-  {
-    id: "1",
-    name: "지은",
-    profileImage:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100",
-    hasWrittenToday: true,
-    canPoke: false,
-    lastSnippet: "오늘의 나를 표현하는 단어들: 설렘, 도전, 고마움",
-  },
-  {
-    id: "2",
-    name: "민수",
-    profileImage:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
-    hasWrittenToday: false,
-    canPoke: true,
-  },
-  {
-    id: "3",
-    name: "서연",
-    profileImage:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100",
-    hasWrittenToday: true,
-    canPoke: false,
-    lastSnippet: "카페에서 조용히 하루를 마무리한 날",
-  },
-  {
-    id: "4",
-    name: "하은",
-    profileImage:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100",
-    hasWrittenToday: false,
-    canPoke: true,
-  },
-];
+function FriendChip({
+  item,
+  isPoked,
+  onPoke,
+}: {
+  item: FriendListItem;
+  isPoked: boolean;
+  onPoke: () => void;
+}) {
+  return (
+    <View style={styles.friendChip}>
+      <Image
+        source={{ uri: item.friend.profile_image_url || "https://via.placeholder.com/100" }}
+        style={styles.chipAvatar}
+      />
+      <Text style={styles.chipName} numberOfLines={1}>
+        {item.friend.nickname ?? item.friend.username}
+      </Text>
+      <TouchableOpacity
+        style={[styles.pokeBtn, isPoked && styles.pokeBtnDone]}
+        onPress={onPoke}
+        disabled={isPoked}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.pokeBtnText, isPoked && styles.pokeBtnTextDone]}>
+          {isPoked ? "찌름!" : "찌르기"}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function DiaryCard({ item }: { item: FriendDiaryItem }) {
+  const emoji = getEmoji(item.emotion);
+
+  return (
+    <View style={styles.card}>
+      {item.thumbnail_url ? (
+        <Image source={{ uri: item.thumbnail_url }} style={styles.cardThumbnail} />
+      ) : null}
+      <View style={styles.cardBody}>
+        <View style={styles.authorRow}>
+          <Image
+            source={{ uri: item.author?.profile_image_url || "https://via.placeholder.com/100" }}
+            style={styles.authorAvatar}
+          />
+          <Text style={styles.authorName}>{item.author?.nickname ?? "친구"}</Text>
+          <Text style={styles.cardDate}>{formatDiaryDateShort(item.diary_date)}</Text>
+        </View>
+        <Text style={styles.cardTitle} numberOfLines={1}>
+          {emoji ? `${emoji} ` : ""}{item.title ?? "오늘의 일기"}
+        </Text>
+        {item.content ? (
+          <Text style={styles.cardContent} numberOfLines={3}>
+            {item.content}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
 
 export default function FriendsScreen() {
-  const [friends, setFriends] = useState<Friend[]>(MOCK_FRIENDS);
-  const [searchText, setSearchText] = useState("");
+  const router = useRouter();
+  const [friends, setFriends] = useState<FriendListItem[]>([]);
+  const [diaries, setDiaries] = useState<FriendDiaryItem[]>([]);
+  const [pokedIds, setPokedIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const notWritten = friends.filter((f) => !f.hasWrittenToday);
-  const written = friends.filter((f) => f.hasWrittenToday);
+  const loadData = useCallback(async () => {
+    try {
+      setError(null);
+      const [friendsData, diariesData] = await Promise.all([
+        getFriends(),
+        getFriendDiaries(),
+      ]);
+      setFriends(friendsData);
+      setDiaries(diariesData);
+    } catch {
+      setError("데이터를 불러오지 못했어요.");
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
 
-  function handlePoke(friendId: string) {
-    setFriends((prev) =>
-      prev.map((f) =>
-        f.id === friendId ? { ...f, canPoke: false } : f
-      )
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  function onRefresh() {
+    setIsRefreshing(true);
+    loadData();
+  }
+
+  async function handlePoke(friendUserId: string) {
+    try {
+      await pokeFriend(friendUserId);
+      setPokedIds((prev) => new Set(prev).add(friendUserId));
+      Alert.alert("찌르기 완료!", "친구를 찔렀어요.");
+    } catch (e) {
+      Alert.alert("오류", e instanceof Error ? e.message : "찌르기에 실패했어요.");
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <View style={{ width: 22 }} />
+          <Text style={styles.headerTitle}>친구들의 하루</Text>
+          <TouchableOpacity hitSlop={8} onPress={() => router.push("/friends/manage" as any)}>
+            <Ionicons name="person-add-outline" size={22} color={colors.black} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.centered}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </SafeAreaView>
     );
-    const friend = friends.find((f) => f.id === friendId);
-    Alert.alert("찌르기 완료", `${friend?.name}님을 찔렀어요!`);
   }
 
-  function handleAddFriend() {
-    if (!searchText.trim()) return;
-    Alert.alert("친구 추가", `"${searchText.trim()}" 에게 친구 요청을 보냈어요.`);
-    setSearchText("");
+  if (error) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <View style={{ width: 22 }} />
+          <Text style={styles.headerTitle}>친구들의 하루</Text>
+          <TouchableOpacity hitSlop={8} onPress={() => router.push("/friends/manage" as any)}>
+            <Ionicons name="person-add-outline" size={22} color={colors.black} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={loadData}>
+            <Text style={styles.retryText}>다시 시도</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
   }
+
+  const hasFriends = friends.length > 0;
+  const hasDiaries = diaries.length > 0;
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={{ width: 22 }} />
-        <Text style={styles.headerTitle}>우리들의 방</Text>
-        <TouchableOpacity hitSlop={8}>
-          <Ionicons name="settings-outline" size={20} color={colors.black} />
+        <Text style={styles.headerTitle}>친구들의 하루</Text>
+        <TouchableOpacity hitSlop={8} onPress={() => router.push("/friends/manage" as any)}>
+          <Ionicons name="people-outline" size={22} color={colors.black} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, !hasDiaries && styles.scrollContentEmpty]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
       >
-        {/* Friend Search / Add */}
-        <View style={styles.searchRow}>
-          <Ionicons name="search" size={18} color={colors.gray} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="친구 검색 또는 추가..."
-            placeholderTextColor={colors.gray}
-            value={searchText}
-            onChangeText={setSearchText}
-            onSubmitEditing={handleAddFriend}
-            returnKeyType="send"
-          />
-          {searchText.trim() ? (
-            <TouchableOpacity onPress={handleAddFriend}>
-              <Ionicons name="person-add" size={20} color={colors.primary} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {/* Not Written - Poke Section */}
-        {notWritten.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>아직 일기를 안 쓴 친구</Text>
-            {notWritten.map((friend) => (
-              <View key={friend.id} style={styles.friendCard}>
-                <Image
-                  source={{ uri: friend.profileImage }}
-                  style={styles.avatar}
+        {/* 친구 프로필 스트립 */}
+        {hasFriends && (
+          <View style={styles.friendsSection}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.friendsScroll}
+            >
+              {friends.map((item) => (
+                <FriendChip
+                  key={item.friendship_id}
+                  item={item}
+                  isPoked={pokedIds.has(item.friend.id)}
+                  onPoke={() => handlePoke(item.friend.id)}
                 />
-                <View style={styles.friendInfo}>
-                  <Text style={styles.friendName}>{friend.name}</Text>
-                  <Text style={styles.friendSub}>
-                    아직 오늘의 조각을 기록하지 않았어요.
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={[
-                    styles.pokeBtn,
-                    !friend.canPoke && styles.pokeBtnDisabled,
-                  ]}
-                  onPress={() => handlePoke(friend.id)}
-                  disabled={!friend.canPoke}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="hand-left"
-                    size={14}
-                    color={friend.canPoke ? colors.white : colors.gray}
-                  />
-                  <Text
-                    style={[
-                      styles.pokeBtnText,
-                      !friend.canPoke && styles.pokeBtnTextDisabled,
-                    ]}
-                  >
-                    {friend.canPoke ? "찌르기" : "찌름!"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </>
+              ))}
+            </ScrollView>
+          </View>
         )}
 
-        {/* Written - Diary Feed */}
-        {written.length > 0 && (
+        {/* 일기 피드 */}
+        {hasDiaries ? (
           <>
-            <Text style={styles.sectionTitle}>친구들의 일기</Text>
-            {written.map((friend) => (
-              <View key={friend.id} style={styles.friendCard}>
-                <Image
-                  source={{ uri: friend.profileImage }}
-                  style={styles.avatar}
-                />
-                <View style={styles.friendInfo}>
-                  <Text style={styles.friendName}>{friend.name}</Text>
-                  <Text style={styles.friendSnippet} numberOfLines={1}>
-                    {friend.lastSnippet}
-                  </Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={colors.gray}
-                />
-              </View>
+            <Text style={styles.feedLabel}>최근 일기</Text>
+            {diaries.map((item) => (
+              <DiaryCard key={item.id} item={item} />
             ))}
           </>
-        )}
-
-        {friends.length === 0 && (
-          <View style={styles.emptyState}>
-            <Ionicons
-              name="people-outline"
-              size={64}
-              color={colors.grayBorder}
-            />
-            <Text style={styles.emptyTitle}>아직 친구가 없어요</Text>
-            <Text style={styles.emptySubtitle}>
-              위 검색창에서 친구를 추가해보세요.
+        ) : (
+          <View style={[styles.emptyState, hasFriends && styles.emptyStateFeed]}>
+            <Ionicons name="book-outline" size={56} color={colors.grayBorder} />
+            <Text style={styles.emptyTitle}>
+              {hasFriends ? "친구들의 일기가 없어요" : "아직 친구가 없어요"}
             </Text>
+            <Text style={styles.emptySubtitle}>
+              {hasFriends
+                ? "친구가 일기를 올리면 여기에 나타나요."
+                : "친구를 추가하면 일기를 볼 수 있어요."}
+            </Text>
+            {!hasFriends && (
+              <TouchableOpacity
+                style={styles.addFriendBtn}
+                onPress={() => router.push("/friends/manage" as any)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="person-add-outline" size={16} color={colors.white} />
+                <Text style={styles.addFriendBtnText}>친구 추가하기</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </ScrollView>
@@ -214,117 +259,112 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: colors.black,
-  },
+  headerTitle: { fontSize: 17, fontWeight: "700", color: colors.black },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
+  errorText: { fontSize: 14, color: colors.gray },
+  retryBtn: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: colors.primary, borderRadius: 20 },
+  retryText: { fontSize: 14, color: colors.white, fontWeight: "600" },
 
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 32, gap: 14 },
+  scrollContent: { paddingBottom: 32, gap: 16 },
+  scrollContentEmpty: { flex: 1 },
 
-  // Search
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  // 친구 스트립
+  friendsSection: {
     backgroundColor: colors.white,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: colors.grayBorder,
+    borderRadius: 16,
+    marginHorizontal: 20,
+    paddingVertical: 16,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
+  friendsScroll: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  friendChip: {
+    alignItems: "center",
+    gap: 6,
+    width: 72,
+  },
+  chipAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.grayLight,
+    borderWidth: 2,
+    borderColor: colors.primaryPale,
+  },
+  chipName: {
+    fontSize: 12,
+    fontWeight: "600",
     color: colors.black,
-    paddingVertical: 0,
+    textAlign: "center",
   },
+  pokeBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  pokeBtnDone: { backgroundColor: colors.grayLight },
+  pokeBtnText: { fontSize: 11, fontWeight: "700", color: colors.white },
+  pokeBtnTextDone: { color: colors.gray },
 
-  // Section
-  sectionTitle: {
+  feedLabel: {
     fontSize: 15,
     fontWeight: "700",
     color: colors.black,
-    marginTop: 8,
+    paddingHorizontal: 20,
   },
 
-  // Friend card
-  friendCard: {
-    flexDirection: "row",
-    alignItems: "center",
+  // 일기 카드
+  card: {
     backgroundColor: colors.white,
-    borderRadius: 14,
-    padding: 14,
-    gap: 12,
+    borderRadius: 16,
+    marginHorizontal: 20,
+    overflow: "hidden",
     shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.grayLight,
-  },
-  friendInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  friendName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.black,
-  },
-  friendSub: {
-    fontSize: 12,
-    color: colors.gray,
-  },
-  friendSnippet: {
-    fontSize: 13,
-    color: colors.gray,
-  },
+  cardThumbnail: { width: "100%", height: 160, backgroundColor: colors.grayLight },
+  cardBody: { padding: 16, gap: 8 },
+  authorRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  authorAvatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.grayLight },
+  authorName: { flex: 1, fontSize: 13, fontWeight: "600", color: colors.black },
+  cardDate: { fontSize: 12, color: colors.gray },
+  cardTitle: { fontSize: 15, fontWeight: "700", color: colors.black },
+  cardContent: { fontSize: 13, lineHeight: 20, color: colors.gray },
 
-  // Poke button
-  pokeBtn: {
+  // 빈 상태
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingHorizontal: 40,
+  },
+  emptyStateFeed: {
+    flex: 0,
+    paddingVertical: 48,
+  },
+  emptyTitle: { fontSize: 16, fontWeight: "700", color: colors.black, marginTop: 8 },
+  emptySubtitle: { fontSize: 13, color: colors.gray, textAlign: "center", lineHeight: 20 },
+  addFriendBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
     backgroundColor: colors.primary,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  pokeBtnDisabled: {
-    backgroundColor: colors.grayLight,
-  },
-  pokeBtnText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.white,
-  },
-  pokeBtnTextDisabled: {
-    color: colors.gray,
-  },
-
-  // Empty
-  emptyState: {
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 60,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.black,
+    borderRadius: 22,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     marginTop: 8,
   },
-  emptySubtitle: {
-    fontSize: 13,
-    color: colors.gray,
-    textAlign: "center",
-  },
+  addFriendBtnText: { fontSize: 14, fontWeight: "600", color: colors.white },
 });

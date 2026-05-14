@@ -110,7 +110,7 @@ export async function getDiaryById(diaryId: string) {
   return data as Diary;
 }
 
-type UpdateDiaryPatch = Pick<Partial<Diary>, "title" | "content">;
+type UpdateDiaryPatch = Pick<Partial<Diary>, "title" | "content" | "is_public">;
 
 // 일기 수정
 export async function updateDiary(diaryId: string, patch: UpdateDiaryPatch) {
