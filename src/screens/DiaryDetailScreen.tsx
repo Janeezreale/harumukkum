@@ -123,8 +123,11 @@ export default function DiaryDetailScreen() {
 
   async function handleToggleVisibility() {
     if (!diary) return;
+
     setMenuVisible(false);
+
     const next = !isPublic;
+
     try {
       await updateDiary(diary.id, { is_public: next });
       setIsPublic(next);
@@ -290,11 +293,14 @@ export default function DiaryDetailScreen() {
               color={colors.black}
               style={{ marginRight: 6 }}
             />
+
             <Text style={styles.dropdownText}>
               {isPublic ? '비공개로 변경' : '공개로 변경'}
             </Text>
           </TouchableOpacity>
+
           <View style={styles.dropdownDivider} />
+
           <TouchableOpacity
             style={styles.dropdownItem}
             onPress={handleDelete}
@@ -323,7 +329,7 @@ export default function DiaryDetailScreen() {
           {!isGeneratedPreview && (
             <TouchableOpacity
               style={styles.editLink}
-              onPress={() => router.push(`/diary/edit/${diary.id}` as any)}
+              onPress={() => router.replace(`/diary/edit/${diary.id}` as any)}
             >
               <Ionicons name="pencil" size={14} color={colors.gray} />
               <Text style={styles.editLinkText}>수정</Text>
@@ -338,6 +344,7 @@ export default function DiaryDetailScreen() {
               size={11}
               color={isPublic ? colors.primary : colors.gray}
             />
+
             <Text style={[styles.visibilityText, !isPublic && styles.visibilityTextPrivate]}>
               {isPublic ? '친구들에게 공개' : '나만 보기'}
             </Text>
@@ -345,7 +352,9 @@ export default function DiaryDetailScreen() {
         )}
 
         <View style={styles.bodyCard}>
-          <Text style={styles.bodyText}>{getDiaryContent(diary, '생성된 일기 본문이 비어 있어요.')}</Text>
+          <Text style={styles.bodyText}>
+            {getDiaryContent(diary, '생성된 일기 본문이 비어 있어요.')}
+          </Text>
         </View>
 
         {isGeneratedPreview && (
@@ -355,7 +364,7 @@ export default function DiaryDetailScreen() {
             <View style={styles.actionRow}>
               <TouchableOpacity
                 style={styles.editButton}
-                onPress={() => router.push(`/diary/edit/${diary.id}` as any)}
+                onPress={() => router.replace(`/diary/edit/${diary.id}` as any)}
                 activeOpacity={0.8}
                 disabled={isSaving}
               >

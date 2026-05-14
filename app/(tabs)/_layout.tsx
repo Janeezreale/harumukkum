@@ -1,9 +1,21 @@
-import { Tabs } from "expo-router";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { Tabs, useRouter } from "expo-router";
+import { View, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "@/src/constants/colors";
 
+function getLocalDateString() {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 export default function TabsLayout() {
+  const router = useRouter();
+
   return (
     <Tabs
       screenOptions={{
@@ -23,6 +35,7 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="diary"
         options={{
@@ -32,8 +45,21 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="create"
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+
+            router.push({
+              pathname: "/create",
+              params: {
+                diaryDate: getLocalDateString(),
+              },
+            } as any);
+          },
+        }}
         options={{
           title: "Write",
           tabBarIcon: () => (
@@ -44,6 +70,7 @@ export default function TabsLayout() {
           tabBarLabel: () => null,
         }}
       />
+
       <Tabs.Screen
         name="report"
         options={{
@@ -53,6 +80,7 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="friends"
         options={{

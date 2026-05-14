@@ -7,32 +7,53 @@ import {
   SafeAreaView,
   ActivityIndicator,
 } from "react-native";
-import { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../constants/colors";
 import { getMyDiaries } from "../api/diary";
 import type { Diary } from "../types/diary";
+
+function getLocalDateString() {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
 
 export default function HomeScreen() {
   const router = useRouter();
   const [todayDiary, setTodayDiary] = useState<Diary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    getMyDiaries()
-      .then((diaries) => {
-        const found = diaries.find((d: Diary) => d.diary_date === today);
-        setTodayDiary(found ?? null);
-      })
-      .catch(() => setTodayDiary(null))
-      .finally(() => setIsLoading(false));
+  const loadTodayDiary = useCallback(async () => {
+    try {
+      setIsLoading(true);
+
+      const today = getLocalDateString();
+      const diaries = await getMyDiaries();
+
+      const found = diaries.find((d: Diary) => d.diary_date === today);
+      setTodayDiary(found ?? null);
+    } catch (error) {
+      console.log("Home diary load failed", error);
+      setTodayDiary(null);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadTodayDiary();
+    }, [loadTodayDiary])
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={{ width: 22 }} />
         <Text style={styles.headerTitle}>하루묶음</Text>
@@ -46,7 +67,6 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Section */}
         <View style={styles.heroSection}>
           <Text style={styles.heroTitle}>
             오늘의 조각들을 질문으로 모아{"\n"}한 편의 이야기로 엮어볼까요?
@@ -55,10 +75,16 @@ export default function HomeScreen() {
             당신의 오늘을 한 페이지로 정리해드릴게요.
           </Text>
 
-          {/* CTA Button */}
           <TouchableOpacity
             style={styles.ctaButton}
-            onPress={() => router.push("/create")}
+            onPress={() =>
+              router.push({
+                pathname: "/create",
+                params: {
+                  diaryDate: getLocalDateString(),
+                },
+              } as any)
+            }
             activeOpacity={0.85}
           >
             <Text style={styles.ctaButtonText}>일기 생성하기</Text>
@@ -66,7 +92,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Today's Diary */}
         {isLoading ? (
           <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />
         ) : todayDiary ? (
@@ -79,9 +104,11 @@ export default function HomeScreen() {
               <Ionicons name="document-text" size={18} color={colors.primary} />
               <Text style={styles.diaryCardTitle}>오늘의 일기</Text>
             </View>
+
             <Text style={styles.diaryCardBody} numberOfLines={3}>
               {todayDiary.body ?? todayDiary.content ?? ""}
             </Text>
+
             <View style={styles.diaryCardFooter}>
               <Text style={styles.diaryCardDate}>{todayDiary.diary_date}</Text>
               <Ionicons name="chevron-forward" size={16} color={colors.gray} />
@@ -124,8 +151,6 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 20,
   },
-
-  // Hero Section
   heroSection: {
     backgroundColor: colors.white,
     borderRadius: 16,
@@ -151,8 +176,6 @@ const styles = StyleSheet.create({
     color: colors.gray,
     textAlign: "center",
   },
-
-  // CTA Button
   ctaButton: {
     flexDirection: "row",
     backgroundColor: colors.black,
@@ -169,8 +192,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-
-  // Today's diary card
   diaryCard: {
     backgroundColor: colors.white,
     borderRadius: 14,
@@ -207,8 +228,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.gray,
   },
-
-  // Empty state
   emptyCard: {
     backgroundColor: colors.white,
     borderRadius: 14,
