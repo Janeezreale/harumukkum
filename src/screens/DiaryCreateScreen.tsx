@@ -13,7 +13,7 @@ import {
   Image,
 } from 'react-native';
 import { useRef, useState } from 'react';
-import { useRouter, Stack } from 'expo-router';
+import { useRouter, Stack, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../constants/colors';
@@ -107,22 +107,31 @@ const STEPS: Step[] = [
 const IMAGE_STEP_INDEX = STEPS.length;
 const DONE_STEP_INDEX = STEPS.length + 1;
 
+function getTodayString() {
+  return new Date().toISOString().split('T')[0];
+}
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : '알 수 없는 오류가 발생했어요.';
 }
 
 export default function DiaryCreateScreen() {
   const router = useRouter();
+  const { diaryDate } = useLocalSearchParams();
 
   const {
     draftAnswer,
     setDraftAnswer,
     draftPhotoUri,
     setDraftPhotoUri,
-    resetDraft,
     selectedDate,
     setLastGeneratedDiary,
   } = useDiaryStore();
+
+  const selectedDiaryDate =
+    typeof diaryDate === 'string'
+      ? diaryDate
+      : selectedDate || getTodayString();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [textInput, setTextInput] = useState('');
@@ -246,7 +255,7 @@ export default function DiaryCreateScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       quality: 0.8,
     });
@@ -263,49 +272,46 @@ export default function DiaryCreateScreen() {
   }
 
   async function handleGenerate() {
-  const result = validateRequiredDiaryAnswers({
-    when: draftAnswer.when_text,
-    where: draftAnswer.where_text,
-    withWhom: draftAnswer.who_text,
-    what: draftAnswer.what_text,
-    emotion: draftAnswer.emotion,
-    emotionReason: draftAnswer.why_text,
-  });
-
-  if (!result.isValid) {
-    Alert.alert('입력 확인', result.errors[0]);
-    return;
-  }
-
-  setIsLoading(true);
-
-  try {
-    const imageUrls = draftPhotoUri ? [draftPhotoUri] : [];
-
-    const created = await generateDiary({
-      diaryDate: selectedDate,
-      emotion: draftAnswer.emotion!,
-      whatText: draftAnswer.what_text ?? '',
-      withWhomText: draftAnswer.who_text ?? '',
-      whenText: draftAnswer.when_text ?? '',
-      whereText: draftAnswer.where_text ?? '',
-      reasonText: draftAnswer.why_text ?? '',
-      imageUrls,
+    const result = validateRequiredDiaryAnswers({
+      when: draftAnswer.when_text,
+      where: draftAnswer.where_text,
+      withWhom: draftAnswer.who_text,
+      what: draftAnswer.what_text,
+      emotion: draftAnswer.emotion,
+      emotionReason: draftAnswer.why_text,
     });
 
-    setLastGeneratedDiary(created);
+    if (!result.isValid) {
+      Alert.alert('입력 확인', result.errors[0]);
+      return;
+    }
 
-    // 중요:
-    // 아직 DB에 저장되지 않은 일기이기 때문에 /diary/${created.id}로 보내면 안 됨
-    // /diary/[id] 화면은 Supabase에서 id로 조회하기 때문에 PGRST116 오류가 발생함
-    router.push('/diary/generated' as any);
-  } catch (error) {
-    console.error('Diary generation failed', error);
-    Alert.alert('일기 생성 실패', getErrorMessage(error));
-  } finally {
-    setIsLoading(false);
+    setIsLoading(true);
+
+    try {
+      const imageUrls = draftPhotoUri ? [draftPhotoUri] : [];
+
+      const created = await generateDiary({
+        diaryDate: selectedDiaryDate,
+        emotion: draftAnswer.emotion!,
+        whatText: draftAnswer.what_text ?? '',
+        withWhomText: draftAnswer.who_text ?? '',
+        whenText: draftAnswer.when_text ?? '',
+        whereText: draftAnswer.where_text ?? '',
+        reasonText: draftAnswer.why_text ?? '',
+        imageUrls,
+      });
+
+      setLastGeneratedDiary(created);
+
+      router.push('/diary/generated' as any);
+    } catch (error) {
+      console.error('Diary generation failed', error);
+      Alert.alert('일기 생성 실패', getErrorMessage(error));
+    } finally {
+      setIsLoading(false);
+    }
   }
-}
 
   return (
     <>
@@ -338,6 +344,8 @@ export default function DiaryCreateScreen() {
               간단한 질문에 답해주시면{'\n'}AI가 당신의 하루를 정리해드려요.
             </Text>
 
+            <Text style={styles.dateText}>{selectedDiaryDate}</Text>
+
             {activeStep && (
               <View style={styles.questionCard}>
                 <View style={styles.questionInner}>
@@ -355,8 +363,7 @@ export default function DiaryCreateScreen() {
                 <View style={styles.emotionGrid}>
                   {emotions.map((emotionOption) => {
                     const isSelected = selectedEmotions.includes(emotionOption.id);
-                    const isDisabled =
-                      !isSelected && selectedEmotions.length >= 3;
+                    const isDisabled = !isSelected && selectedEmotions.length >= 3;
 
                     return (
                       <TouchableOpacity
@@ -370,9 +377,7 @@ export default function DiaryCreateScreen() {
                         activeOpacity={0.7}
                         disabled={isDisabled}
                       >
-                        <Text style={styles.emotionEmoji}>
-                          {emotionOption.emoji}
-                        </Text>
+                        <Text style={styles.emotionEmoji}>{emotionOption.emoji}</Text>
 
                         <Text
                           style={[
@@ -468,10 +473,7 @@ export default function DiaryCreateScreen() {
 
                 {draftPhotoUri && (
                   <View style={styles.previewWrapper}>
-                    <Image
-                      source={{ uri: draftPhotoUri }}
-                      style={styles.previewImage}
-                    />
+                    <Image source={{ uri: draftPhotoUri }} style={styles.previewImage} />
 
                     <TouchableOpacity
                       style={styles.removeImageButton}
@@ -483,20 +485,14 @@ export default function DiaryCreateScreen() {
                 )}
 
                 {!draftPhotoUri && (
-                  <Text style={styles.noImageText}>
-                    선택된 이미지가 없습니다.
-                  </Text>
+                  <Text style={styles.noImageText}>선택된 이미지가 없습니다.</Text>
                 )}
               </View>
             )}
 
             {isDoneStep && (
               <View style={styles.doneCard}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={52}
-                  color={colors.primary}
-                />
+                <Ionicons name="checkmark-circle" size={52} color={colors.primary} />
 
                 <Text style={styles.doneText}>일기 생성 준비가 완료되었어요!</Text>
 
@@ -506,18 +502,11 @@ export default function DiaryCreateScreen() {
 
                 {draftPhotoUri ? (
                   <View style={styles.doneImagePreviewBox}>
-                    <Image
-                      source={{ uri: draftPhotoUri }}
-                      style={styles.donePreviewImage}
-                    />
-                    <Text style={styles.doneImageText}>
-                      이미지가 함께 추가됩니다.
-                    </Text>
+                    <Image source={{ uri: draftPhotoUri }} style={styles.donePreviewImage} />
+                    <Text style={styles.doneImageText}>이미지가 함께 추가됩니다.</Text>
                   </View>
                 ) : (
-                  <Text style={styles.noImageText}>
-                    이미지 없이 일기가 생성됩니다.
-                  </Text>
+                  <Text style={styles.noImageText}>이미지 없이 일기가 생성됩니다.</Text>
                 )}
               </View>
             )}
@@ -560,10 +549,7 @@ export default function DiaryCreateScreen() {
               </TouchableOpacity>
             ) : isDoneStep ? (
               <TouchableOpacity
-                style={[
-                  styles.generateBtn,
-                  isLoading && styles.generateBtnDisabled,
-                ]}
+                style={[styles.generateBtn, isLoading && styles.generateBtnDisabled]}
                 onPress={handleGenerate}
                 disabled={isLoading}
                 activeOpacity={0.85}
@@ -571,9 +557,7 @@ export default function DiaryCreateScreen() {
                 {isLoading ? (
                   <ActivityIndicator color={colors.white} />
                 ) : (
-                  <Text style={styles.generateBtnText}>
-                    AI 일기 생성하기 ✦
-                  </Text>
+                  <Text style={styles.generateBtnText}>AI 일기 생성하기 ✦</Text>
                 )}
               </TouchableOpacity>
             ) : null}
@@ -618,7 +602,14 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     textAlign: 'center',
     marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 0,
+  },
+  dateText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+    textAlign: 'center',
+    marginTop: -8,
   },
   questionCard: {
     backgroundColor: colors.white,

@@ -9,8 +9,8 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "expo-router";
+import { useState, useCallback } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../constants/colors";
 import { getMyDiaries } from "../api/diary";
@@ -29,18 +29,33 @@ function getFirstDayOfMonth(year: number, month: number) {
   return new Date(year, month, 1).getDay();
 }
 
+function formatDate(year: number, month: number, day: number) {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function getTodayString() {
+  const today = new Date();
+  return formatDate(today.getFullYear(), today.getMonth(), today.getDate());
+}
+
+function isFutureDate(dateStr: string) {
+  return dateStr > getTodayString();
+}
+
 function getDiaryImage(diary: Diary): string | null {
-  // diary_images 관계에서 가져오거나, thumbnail_url, photo_url 순서로 확인
   const images = (diary as any).diary_images;
+
   if (Array.isArray(images) && images.length > 0 && images[0].image_url) {
     return images[0].image_url;
   }
+
   return diary.thumbnail_url ?? diary.photo_url ?? null;
 }
 
 export default function CalendarScreen() {
   const router = useRouter();
   const now = new Date();
+
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
   const [diaryMap, setDiaryMap] = useState<Record<string, Diary>>({});
@@ -48,22 +63,29 @@ export default function CalendarScreen() {
 
   const loadDiaries = useCallback(async () => {
     try {
+      setIsLoading(true);
+
       const diaries = await getMyDiaries();
       const map: Record<string, Diary> = {};
+
       diaries.forEach((d: Diary) => {
         map[d.diary_date] = d;
       });
+
       setDiaryMap(map);
-    } catch {
-      // silent
+    } catch (error) {
+      console.log("Calendar diary load failed", error);
+      setDiaryMap({});
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadDiaries();
-  }, [loadDiaries]);
+  useFocusEffect(
+    useCallback(() => {
+      loadDiaries();
+    }, [loadDiaries])
+  );
 
   function goToPrevMonth() {
     if (month === 0) {
@@ -83,6 +105,22 @@ export default function CalendarScreen() {
     }
   }
 
+  function handleDatePress(dateStr: string, diary?: Diary) {
+    if (isFutureDate(dateStr)) return;
+
+    if (diary) {
+      router.push(`/diary/${diary.id}` as any);
+      return;
+    }
+
+    router.push({
+      pathname: "/create",
+      params: {
+        diaryDate: dateStr,
+      },
+    } as any);
+  }
+
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
 
@@ -93,10 +131,10 @@ export default function CalendarScreen() {
   const monthLabel = `${year}년 ${month + 1}월`;
   const todayDate = now.getDate();
   const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
+  const todayStr = getTodayString();
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={{ width: 22 }} />
         <Text style={styles.headerTitle}>한 달 묶음</Text>
@@ -115,18 +153,18 @@ export default function CalendarScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Month Navigation */}
           <View style={styles.monthNav}>
             <TouchableOpacity onPress={goToPrevMonth} hitSlop={8}>
               <Ionicons name="chevron-back" size={22} color={colors.black} />
             </TouchableOpacity>
+
             <Text style={styles.monthLabel}>{monthLabel}</Text>
+
             <TouchableOpacity onPress={goToNextMonth} hitSlop={8}>
               <Ionicons name="chevron-forward" size={22} color={colors.black} />
             </TouchableOpacity>
           </View>
 
-          {/* Day of week headers */}
           <View style={styles.weekHeader}>
             {DAYS_OF_WEEK.map((d, i) => (
               <Text
@@ -142,26 +180,29 @@ export default function CalendarScreen() {
             ))}
           </View>
 
-          {/* Calendar grid */}
           <View style={styles.calendarGrid}>
             {gridCells.map((day, index) => {
               if (day === null) {
                 return <View key={`empty-${index}`} style={styles.dayCell} />;
               }
 
-              const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+              const dateStr = formatDate(year, month, day);
               const diary = diaryMap[dateStr];
               const isToday = isCurrentMonth && day === todayDate;
+              const isFuture = isFutureDate(dateStr);
               const imageUrl = diary ? getDiaryImage(diary) : null;
 
               return (
                 <TouchableOpacity
-                  key={day}
-                  style={[styles.dayCell, diary && styles.dayCellWithDiary]}
-                  activeOpacity={diary ? 0.7 : 1}
-                  onPress={() => {
-                    if (diary) router.push(`/diary/${diary.id}` as any);
-                  }}
+                  key={dateStr}
+                  style={[
+                    styles.dayCell,
+                    diary && styles.dayCellWithDiary,
+                    isFuture && styles.futureDayCell,
+                  ]}
+                  activeOpacity={isFuture ? 1 : 0.7}
+                  disabled={isFuture}
+                  onPress={() => handleDatePress(dateStr, diary)}
                 >
                   {imageUrl ? (
                     <>
@@ -182,6 +223,7 @@ export default function CalendarScreen() {
                       >
                         {day}
                       </Text>
+
                       {diary && <View style={styles.diaryDot} />}
                     </>
                   )}
@@ -190,10 +232,16 @@ export default function CalendarScreen() {
             })}
           </View>
 
-          {/* CTA Button */}
           <TouchableOpacity
             style={styles.ctaButton}
-            onPress={() => router.push("/create")}
+            onPress={() =>
+              router.push({
+                pathname: "/create",
+                params: {
+                  diaryDate: todayStr,
+                },
+              } as any)
+            }
             activeOpacity={0.85}
           >
             <Text style={styles.ctaText}>오늘의 하루 묶기</Text>
@@ -206,6 +254,7 @@ export default function CalendarScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -214,12 +263,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   headerTitle: { fontSize: 17, fontWeight: "700", color: colors.black },
+
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 32 },
 
-  // Month navigation
   monthNav: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -233,7 +282,6 @@ const styles = StyleSheet.create({
     color: colors.black,
   },
 
-  // Week header
   weekHeader: {
     flexDirection: "row",
     marginBottom: 8,
@@ -250,7 +298,6 @@ const styles = StyleSheet.create({
   weekDaySun: { color: colors.negative },
   weekDaySat: { color: colors.primary },
 
-  // Calendar grid
   calendarGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -265,11 +312,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.grayLight,
     overflow: "hidden",
   },
+  futureDayCell: {
+    opacity: 0.35,
+  },
   dayCellWithDiary: {
     backgroundColor: colors.primaryBg,
     borderWidth: 1,
     borderColor: colors.primaryBorder,
   },
+
   dayImage: {
     position: "absolute",
     width: "100%",
@@ -283,6 +334,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.25)",
     borderRadius: 10,
   },
+
   dayNumber: {
     fontSize: 15,
     fontWeight: "600",
@@ -303,6 +355,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
+
   diaryDot: {
     width: 5,
     height: 5,
@@ -311,7 +364,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // CTA
   ctaButton: {
     backgroundColor: colors.black,
     borderRadius: 14,
