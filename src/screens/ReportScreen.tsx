@@ -27,7 +27,11 @@ export default function ReportScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
+        <View style={{ width: 22 }} />
         <Text style={styles.headerTitle}>Weekly Report</Text>
+        <TouchableOpacity hitSlop={8} onPress={() => router.push('/mypage' as any)}>
+          <Ionicons name="person-outline" size={22} color={colors.black} />
+        </TouchableOpacity>
       </View>
 
       {hasDiaries === null ? (

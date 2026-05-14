@@ -102,16 +102,11 @@ const STEPS: Step[] = [
   },
 ];
 
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : '알 수 없는 오류가 발생했어요.';
-}
-
 export default function DiaryCreateScreen() {
   const router = useRouter();
   const {
     draftAnswer,
     setDraftAnswer,
-    draftPhotoUri,
     resetDraft,
     selectedDate,
     setLastGeneratedDiary,
@@ -189,7 +184,6 @@ export default function DiaryCreateScreen() {
         whenText: draftAnswer.when_text ?? '',
         whereText: draftAnswer.where_text ?? '',
         reasonText: draftAnswer.why_text ?? '',
-        imageUrls,
       });
       setLastGeneratedDiary(created);
       resetDraft();
@@ -515,7 +509,7 @@ const styles = StyleSheet.create({
     minHeight: 54,
     borderWidth: 1,
     borderColor: 'rgba(196, 199, 199, 0.4)',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 20,
@@ -541,7 +535,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderWidth: 1,
     borderColor: colors.grayBorder,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -589,7 +583,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 6,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -9,77 +9,61 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from "react-native";
+import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../constants/colors";
-
-type Friend = {
-  id: string;
-  name: string;
-  profileImage: string;
-  hasWrittenToday: boolean;
-  canPoke: boolean;
-  lastSnippet?: string;
-};
-
-const MOCK_FRIENDS: Friend[] = [
-  {
-    id: "1",
-    name: "지은",
-    profileImage:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100",
-    hasWrittenToday: true,
-    canPoke: false,
-    lastSnippet: "오늘의 나를 표현하는 단어들: 설렘, 도전, 고마움",
-  },
-  {
-    id: "2",
-    name: "민수",
-    profileImage:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
-    hasWrittenToday: false,
-    canPoke: true,
-  },
-  {
-    id: "3",
-    name: "서연",
-    profileImage:
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100",
-    hasWrittenToday: true,
-    canPoke: false,
-    lastSnippet: "카페에서 조용히 하루를 마무리한 날",
-  },
-  {
-    id: "4",
-    name: "하은",
-    profileImage:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100",
-    hasWrittenToday: false,
-    canPoke: true,
-  },
-];
+import { getFriends, searchUsers, sendFriendRequest, pokeFriend, type FriendListItem } from "../api/friends";
 
 export default function FriendsScreen() {
-  const [friends, setFriends] = useState<Friend[]>(MOCK_FRIENDS);
+  const router = useRouter();
+  const [friends, setFriends] = useState<FriendListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
+  const [pokedIds, setPokedIds] = useState<Set<string>>(new Set());
 
-  const notWritten = friends.filter((f) => !f.hasWrittenToday);
-  const written = friends.filter((f) => f.hasWrittenToday);
+  const loadFriends = useCallback(async () => {
+    try {
+      const data = await getFriends();
+      setFriends(data);
+    } catch {
+      // silent fail
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  function handlePoke(friendId: string) {
-    setFriends((prev) =>
-      prev.map((f) =>
-        f.id === friendId ? { ...f, canPoke: false } : f
-      )
-    );
-    const friend = friends.find((f) => f.id === friendId);
-    Alert.alert("찌르기 완료", `${friend?.name}님을 찔렀어요!`);
+  useEffect(() => {
+    loadFriends();
+  }, [loadFriends]);
+
+  async function handlePoke(friendUserId: string) {
+    try {
+      await pokeFriend(friendUserId);
+      setPokedIds((prev) => new Set(prev).add(friendUserId));
+      Alert.alert("찌르기 완료!", "친구를 찔렀어요.");
+    } catch (error) {
+      Alert.alert("오류", error instanceof Error ? error.message : "찌르기에 실패했어요.");
+    }
   }
 
-  function handleAddFriend() {
-    if (!searchText.trim()) return;
-    Alert.alert("친구 추가", `"${searchText.trim()}" 에게 친구 요청을 보냈어요.`);
-    setSearchText("");
+  async function handleAddFriend() {
+    const query = searchText.trim();
+    if (!query) return;
+
+    try {
+      const users = await searchUsers(query);
+      if (users.length === 0) {
+        Alert.alert("검색 결과 없음", "해당 사용자를 찾을 수 없어요.");
+        return;
+      }
+      await sendFriendRequest(users[0].id);
+      Alert.alert("친구 요청 완료", `${users[0].nickname ?? query}에게 요청을 보냈어요.`);
+      setSearchText("");
+    } catch (error) {
+      Alert.alert("오류", error instanceof Error ? error.message : "친구 추가에 실패했어요.");
+    }
   }
 
   return (
@@ -88,8 +72,8 @@ export default function FriendsScreen() {
       <View style={styles.header}>
         <View style={{ width: 22 }} />
         <Text style={styles.headerTitle}>우리들의 방</Text>
-        <TouchableOpacity hitSlop={8}>
-          <Ionicons name="settings-outline" size={20} color={colors.black} />
+        <TouchableOpacity hitSlop={8} onPress={() => router.push("/mypage" as any)}>
+          <Ionicons name="person-outline" size={22} color={colors.black} />
         </TouchableOpacity>
       </View>
 
@@ -98,13 +82,13 @@ export default function FriendsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Friend Search / Add */}
+        {/* Search / Add Friend */}
         <View style={styles.searchRow}>
           <Ionicons name="search" size={18} color={colors.gray} />
           <TextInput
             style={styles.searchInput}
             placeholder="친구 검색 또는 추가..."
-            placeholderTextColor={colors.gray}
+            placeholderTextColor={colors.placeholder}
             value={searchText}
             onChangeText={setSearchText}
             onSubmitEditing={handleAddFriend}
@@ -117,88 +101,57 @@ export default function FriendsScreen() {
           ) : null}
         </View>
 
-        {/* Not Written - Poke Section */}
-        {notWritten.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>아직 일기를 안 쓴 친구</Text>
-            {notWritten.map((friend) => (
-              <View key={friend.id} style={styles.friendCard}>
-                <Image
-                  source={{ uri: friend.profileImage }}
-                  style={styles.avatar}
-                />
-                <View style={styles.friendInfo}>
-                  <Text style={styles.friendName}>{friend.name}</Text>
-                  <Text style={styles.friendSub}>
-                    아직 오늘의 조각을 기록하지 않았어요.
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={[
-                    styles.pokeBtn,
-                    !friend.canPoke && styles.pokeBtnDisabled,
-                  ]}
-                  onPress={() => handlePoke(friend.id)}
-                  disabled={!friend.canPoke}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name="hand-left"
-                    size={14}
-                    color={friend.canPoke ? colors.white : colors.gray}
-                  />
-                  <Text
-                    style={[
-                      styles.pokeBtnText,
-                      !friend.canPoke && styles.pokeBtnTextDisabled,
-                    ]}
-                  >
-                    {friend.canPoke ? "찌르기" : "찌름!"}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </>
-        )}
-
-        {/* Written - Diary Feed */}
-        {written.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>친구들의 일기</Text>
-            {written.map((friend) => (
-              <View key={friend.id} style={styles.friendCard}>
-                <Image
-                  source={{ uri: friend.profileImage }}
-                  style={styles.avatar}
-                />
-                <View style={styles.friendInfo}>
-                  <Text style={styles.friendName}>{friend.name}</Text>
-                  <Text style={styles.friendSnippet} numberOfLines={1}>
-                    {friend.lastSnippet}
-                  </Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={colors.gray}
-                />
-              </View>
-            ))}
-          </>
-        )}
-
-        {friends.length === 0 && (
+        {isLoading ? (
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+        ) : friends.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons
-              name="people-outline"
-              size={64}
-              color={colors.grayBorder}
-            />
+            <Ionicons name="people-outline" size={64} color={colors.grayBorder} />
             <Text style={styles.emptyTitle}>아직 친구가 없어요</Text>
-            <Text style={styles.emptySubtitle}>
-              위 검색창에서 친구를 추가해보세요.
-            </Text>
+            <Text style={styles.emptySubtitle}>위 검색창에서 친구를 추가해보세요.</Text>
           </View>
+        ) : (
+          <>
+            <Text style={styles.sectionTitle}>친구 {friends.length}명</Text>
+            {friends.map((item) => {
+              const isPoked = pokedIds.has(item.friend.id);
+              return (
+                <View key={item.friendship_id} style={styles.friendCard}>
+                  <Image
+                    source={{
+                      uri: item.friend.profile_image_url ||
+                        "https://via.placeholder.com/100",
+                    }}
+                    style={styles.avatar}
+                  />
+                  <View style={styles.friendInfo}>
+                    <Text style={styles.friendName}>
+                      {item.friend.nickname ?? "친구"}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.pokeBtn, isPoked && styles.pokeBtnDisabled]}
+                    onPress={() => handlePoke(item.friend.id)}
+                    disabled={isPoked}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name="hand-left"
+                      size={14}
+                      color={isPoked ? colors.gray : colors.white}
+                    />
+                    <Text
+                      style={[
+                        styles.pokeBtnText,
+                        isPoked && styles.pokeBtnTextDisabled,
+                      ]}
+                    >
+                      {isPoked ? "찌름!" : "찌르기"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -278,14 +231,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: colors.black,
-  },
-  friendSub: {
-    fontSize: 12,
-    color: colors.gray,
-  },
-  friendSnippet: {
-    fontSize: 13,
-    color: colors.gray,
   },
 
   // Poke button

@@ -4,53 +4,40 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
+import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../constants/colors";
-
-// TODO: replace with api/diary.getTodayFragments
-const todayFragments = [
-  {
-    id: "1",
-    time: "09:21",
-    location: "카페 이로운",
-    imageUri:
-      "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=300",
-  },
-  {
-    id: "2",
-    time: "13:47",
-    location: "성수동 근처",
-    imageUri:
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300",
-  },
-  {
-    id: "3",
-    time: "18:32",
-    location: "메모 3개",
-    imageUri:
-      "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=300",
-  },
-];
-
-// TODO: replace with api/diary.getEmotionInsight
-const emotionInsight = {
-  title: "오늘의 감정 톤을 감지했어요",
-  summary: '"복잡하지만, 나쁘지 않았던 하루"',
-};
+import { getMyDiaries } from "../api/diary";
+import type { Diary } from "../types/diary";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [todayDiary, setTodayDiary] = useState<Diary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    getMyDiaries()
+      .then((diaries) => {
+        const found = diaries.find((d: Diary) => d.diary_date === today);
+        setTodayDiary(found ?? null);
+      })
+      .catch(() => setTodayDiary(null))
+      .finally(() => setIsLoading(false));
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity hitSlop={8} style={styles.headerIconBtn} onPress={() => router.push('/mypage')}>
-          <Ionicons name="person-circle-outline" size={26} color={colors.text} />
+        <View style={{ width: 22 }} />
+        <Text style={styles.headerTitle}>하루묶음</Text>
+        <TouchableOpacity hitSlop={8} onPress={() => router.push("/mypage" as any)}>
+          <Ionicons name="person-outline" size={22} color={colors.black} />
         </TouchableOpacity>
       </View>
 
@@ -79,49 +66,34 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* AI Fragments Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>AI가 수집한 오늘의 조각들</Text>
-          <TouchableOpacity>
-            <Text style={styles.sectionLink}>전체보기</Text>
+        {/* Today's Diary */}
+        {isLoading ? (
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />
+        ) : todayDiary ? (
+          <TouchableOpacity
+            style={styles.diaryCard}
+            activeOpacity={0.85}
+            onPress={() => router.push(`/diary/${todayDiary.id}` as any)}
+          >
+            <View style={styles.diaryCardHeader}>
+              <Ionicons name="document-text" size={18} color={colors.primary} />
+              <Text style={styles.diaryCardTitle}>오늘의 일기</Text>
+            </View>
+            <Text style={styles.diaryCardBody} numberOfLines={3}>
+              {todayDiary.body ?? todayDiary.content ?? ""}
+            </Text>
+            <View style={styles.diaryCardFooter}>
+              <Text style={styles.diaryCardDate}>{todayDiary.diary_date}</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.gray} />
+            </View>
           </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.fragmentScroll}
-        >
-          {todayFragments.map((fragment) => (
-            <TouchableOpacity
-              key={fragment.id}
-              style={styles.fragmentCard}
-              activeOpacity={0.9}
-            >
-              <Image
-                source={{ uri: fragment.imageUri }}
-                style={styles.fragmentImage}
-              />
-              <View style={styles.fragmentLabel}>
-                <Text style={styles.fragmentTime}>{fragment.time}</Text>
-                <Text style={styles.fragmentLocation}>{fragment.location}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Emotion Insight Banner */}
-        <TouchableOpacity style={styles.insightCard} activeOpacity={0.9}>
-          <View style={styles.insightIconWrap}>
-            <View style={styles.insightIconCircle} />
-            <Text style={styles.insightIconEmoji}>😊</Text>
+        ) : (
+          <View style={styles.emptyCard}>
+            <Ionicons name="create-outline" size={32} color={colors.grayBorder} />
+            <Text style={styles.emptyText}>아직 오늘의 일기가 없어요.</Text>
+            <Text style={styles.emptySubtext}>위 버튼을 눌러 하루를 기록해보세요.</Text>
           </View>
-          <View style={styles.insightContent}>
-            <Text style={styles.insightTitle}>{emotionInsight.title}</Text>
-            <Text style={styles.insightSummary}>{emotionInsight.summary}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
-        </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -135,26 +107,14 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.background,
-    position: "relative",
-  },
-  headerIconBtn: {
-    position: "absolute",
-    right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "500",
+    fontSize: 20,
+    fontWeight: "600",
     color: colors.black,
-    letterSpacing: -0.3,
   },
   scroll: {
     flex: 1,
@@ -172,10 +132,10 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: "center",
     gap: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
-    shadowRadius: 20,
+    shadowRadius: 12,
     elevation: 2,
   },
   heroTitle: {
@@ -190,7 +150,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: colors.gray,
     textAlign: "center",
-    letterSpacing: 0.2,
   },
 
   // CTA Button
@@ -204,11 +163,6 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     justifyContent: "center",
     marginTop: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
   },
   ctaButtonText: {
     color: colors.white,
@@ -216,97 +170,60 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // AI Fragments
-  sectionHeader: {
+  // Today's diary card
+  diaryCard: {
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    padding: 18,
+    gap: 10,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  diaryCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  diaryCardTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.primary,
+  },
+  diaryCardBody: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: colors.text,
+  },
+  diaryCardFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginTop: 4,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.text,
-  },
-  sectionLink: {
+  diaryCardDate: {
     fontSize: 12,
-    color: colors.primary,
-    fontWeight: "500",
-  },
-  fragmentScroll: {
-    gap: 12,
-    paddingRight: 4,
-  },
-  fragmentCard: {
-    width: 140,
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 2,
-  },
-  fragmentImage: {
-    width: "100%",
-    height: 100,
-    backgroundColor: colors.grayLight,
-  },
-  fragmentLabel: {
-    padding: 10,
-    gap: 3,
-  },
-  fragmentTime: {
-    fontSize: 14,
     color: colors.gray,
-    fontWeight: "400",
-  },
-  fragmentLocation: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: colors.text,
   },
 
-  // Emotion Insight Banner
-  insightCard: {
-    backgroundColor: colors.primaryBg,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: "row",
+  // Empty state
+  emptyCard: {
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    padding: 32,
     alignItems: "center",
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
+    gap: 8,
   },
-  insightIconWrap: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-  },
-  insightIconCircle: {
-    position: "absolute",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(97, 75, 190, 0.1)",
-  },
-  insightIconEmoji: {
-    fontSize: 20,
-  },
-  insightContent: {
-    flex: 1,
-    gap: 3,
-  },
-  insightTitle: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: colors.gray,
-  },
-  insightSummary: {
+  emptyText: {
     fontSize: 15,
-    color: colors.primary,
     fontWeight: "500",
+    color: colors.text,
+    marginTop: 4,
+  },
+  emptySubtext: {
+    fontSize: 13,
+    color: colors.gray,
   },
 });
