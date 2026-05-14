@@ -1,12 +1,27 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import OpenAI from "npm:openai";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      headers: corsHeaders,
+    });
+  }
+
   try {
     const authHeader = req.headers.get("Authorization");
 
     if (!authHeader) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return Response.json({ error: "Unauthorized" }, {
+        status: 401,
+        headers: corsHeaders,
+      });
     }
 
     const { reportId } = await req.json();
@@ -27,13 +42,17 @@ Deno.serve(async (req) => {
     } = await supabase.auth.getUser(token);
 
     if (!user) {
-      return Response.json({ error: "Invalid user" }, { status: 401 });
+      return Response.json({ error: "Invalid user" }, {
+        status: 401,
+        headers: corsHeaders,
+      });
     }
 
     const { data: report, error } = await supabase
       .from("weekly_reports")
       .select("*")
       .eq("id", reportId)
+      .eq("user_id", user.id)
       .single();
 
     if (error || !report) {
@@ -90,15 +109,22 @@ ${report.emotion_summary}
       .from("report-posters")
       .getPublicUrl(uploadData.path);
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("weekly_reports")
       .update({
         poster_image_url: publicUrl.publicUrl,
       })
-      .eq("id", reportId);
+      .eq("id", reportId)
+      .eq("user_id", user.id);
+
+    if (updateError) {
+      throw updateError;
+    }
 
     return Response.json({
       posterImageUrl: publicUrl.publicUrl,
+    }, {
+      headers: corsHeaders,
     });
   } catch (error) {
     console.error(error);
@@ -109,6 +135,7 @@ ${report.emotion_summary}
       },
       {
         status: 500,
+        headers: corsHeaders,
       },
     );
   }
