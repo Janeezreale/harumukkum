@@ -113,22 +113,16 @@ export async function getDiaryById(diaryId: string) {
 type UpdateDiaryPatch = Pick<Partial<Diary>, "title" | "content" | "is_public">;
 
 // 일기 수정
-export async function updateDiary(diaryId: string, patch: UpdateDiaryPatch) {
-  // Supabase RLS must allow authenticated users to update their own diary rows.
-  // If this fails in-app, check the update policy on the diaries table first.
-  const { data, error } = await supabase
+export async function updateDiary(diaryId: string, patch: UpdateDiaryPatch): Promise<void> {
+  const { error } = await supabase
     .from("diaries")
     .update({
       ...patch,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", diaryId)
-    .select()
-    .single();
+    .eq("id", diaryId);
 
   if (error) throw error;
-
-  return data as Diary;
 }
 
 // 일기 삭제

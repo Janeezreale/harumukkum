@@ -19,6 +19,7 @@ import {
   getFriends,
   getReceivedFriendRequests,
   getSentFriendRequests,
+  getTodayPokedFriendIds,
   acceptFriendRequest,
   rejectFriendRequest,
   cancelFriendRequest,
@@ -56,14 +57,16 @@ export default function FriendManageScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [friendsData, receivedData, sentData] = await Promise.all([
+      const [friendsData, receivedData, sentData, pokedIds] = await Promise.all([
         getFriends(),
         getReceivedFriendRequests(),
         getSentFriendRequests(),
+        getTodayPokedFriendIds(),
       ]);
       setFriends(friendsData);
       setReceivedRequests(receivedData);
       setSentRequests(sentData);
+      setPokedIds(new Set(pokedIds));
     } catch {
       // silent
     } finally {
