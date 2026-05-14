@@ -111,9 +111,11 @@ export default function ReportScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 14,
-    alignItems: "center",
   },
   headerTitle: {
     fontSize: 17,
