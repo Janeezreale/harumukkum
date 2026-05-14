@@ -202,6 +202,69 @@ export async function getFriends(): Promise<FriendListItem[]> {
     .filter((friend): friend is FriendListItem => friend !== null);
 }
 
+// 친구 일기 피드
+export type FriendDiaryItem = {
+  id: string;
+  diary_date: string;
+  title: string | null;
+  content: string | null;
+  emotion: string | null;
+  thumbnail_url: string | null;
+  created_at: string;
+  author: {
+    id: string;
+    nickname: string;
+    username: string;
+    profile_image_url: string | null;
+  };
+};
+
+export async function getFriendDiaries(): Promise<FriendDiaryItem[]> {
+  const userId = await getAuthenticatedUserId();
+
+  const { data: friendships, error: friendsError } = await supabase
+    .from("friendships")
+    .select("requester_id, receiver_id")
+    .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`)
+    .eq("status", "accepted");
+
+  if (friendsError) throw friendsError;
+  if (!friendships || friendships.length === 0) return [];
+
+  const friendIds = friendships.map((f) =>
+    f.requester_id === userId ? f.receiver_id : f.requester_id
+  );
+
+  const { data, error } = await supabase
+    .from("diaries")
+    .select(`
+      id,
+      diary_date,
+      title,
+      content,
+      emotion,
+      thumbnail_url,
+      created_at,
+      author:user_id (
+        id,
+        nickname,
+        username,
+        profile_image_url
+      )
+    `)
+    .in("user_id", friendIds)
+    .eq("is_public", true)
+    .order("diary_date", { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+
+  return ((data ?? []) as any[]).map((item) => ({
+    ...item,
+    author: Array.isArray(item.author) ? item.author[0] : item.author,
+  })) as FriendDiaryItem[];
+}
+
 // 찌르기
 export async function pokeFriend(receiverId: string) {
   const {

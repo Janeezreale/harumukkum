@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -40,6 +41,7 @@ export default function DiaryEditScreen() {
   const [diary, setDiary] = useState<Diary | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [isPublic, setIsPublic] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -63,6 +65,7 @@ export default function DiaryEditScreen() {
         if (data) {
           setTitle(getDiaryTitle(data));
           setContent(getDiaryContent(data));
+          setIsPublic(data.is_public ?? true);
         }
       } catch (error) {
         console.error('Diary edit load failed', error);
@@ -97,6 +100,7 @@ export default function DiaryEditScreen() {
       const updatedDiary = await updateDiary(diary.id, {
         title: nextTitle,
         content: nextContent,
+        is_public: isPublic,
       });
       setDiary(updatedDiary);
       setLastGeneratedDiary(updatedDiary);
@@ -191,6 +195,28 @@ export default function DiaryEditScreen() {
             multiline
             textAlignVertical="top"
           />
+
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleInfo}>
+              <Ionicons
+                name={isPublic ? 'globe-outline' : 'lock-closed-outline'}
+                size={16}
+                color={isPublic ? colors.primary : colors.gray}
+              />
+              <View style={styles.toggleTextGroup}>
+                <Text style={styles.toggleLabel}>공개 설정</Text>
+                <Text style={styles.toggleSub}>
+                  {isPublic ? '친구들이 이 일기를 볼 수 있어요' : '나만 볼 수 있어요'}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={isPublic}
+              onValueChange={setIsPublic}
+              trackColor={{ false: colors.grayBorder, true: colors.primaryLight }}
+              thumbColor={colors.white}
+            />
+          </View>
         </ScrollView>
 
         <View style={styles.bottomBar}>
@@ -292,6 +318,34 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 24,
     color: colors.black,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  toggleInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  toggleTextGroup: {
+    gap: 2,
+  },
+  toggleLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.black,
+  },
+  toggleSub: {
+    fontSize: 12,
+    color: colors.gray,
   },
   bottomBar: {
     paddingHorizontal: 20,
