@@ -312,7 +312,7 @@ export async function getFriendDiaries(): Promise<FriendDiaryItem[]> {
 // 오늘 찌른 친구 ID 목록
 export async function getTodayPokedFriendIds(): Promise<string[]> {
   const userId = await getAuthenticatedUserId();
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   const { data, error } = await supabase
     .from("pokes")

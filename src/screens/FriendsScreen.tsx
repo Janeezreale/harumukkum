@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   SafeAreaView,
   ScrollView,
@@ -120,9 +121,11 @@ export default function FriendsScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   function onRefresh() {
     setIsRefreshing(true);
