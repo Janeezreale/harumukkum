@@ -112,15 +112,19 @@ const STEPS: Step[] = [
   },
 ];
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : '알 수 없는 오류가 발생했어요.';
+}
+
 export default function DiaryCreateScreen() {
   const router = useRouter();
-
   const {
     draftAnswer,
     setDraftAnswer,
     draftPhotoUri,
     resetDraft,
     selectedDate,
+    setLastGeneratedDiary,
   } = useDiaryStore();
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -199,11 +203,22 @@ export default function DiaryCreateScreen() {
 
       const created = await mockCreateDiary(input);
 
+      const created = await generateDiary({
+        diaryDate: selectedDate,
+        emotion: draftAnswer.emotion!,
+        whatText: draftAnswer.what_text ?? '',
+        withWhomText: draftAnswer.who_text ?? '',
+        whenText: draftAnswer.when_text ?? '',
+        whereText: draftAnswer.where_text ?? '',
+        reasonText: draftAnswer.why_text ?? '',
+        imageUrls,
+      });
+      setLastGeneratedDiary(created);
       resetDraft();
-
       router.replace(`/diary/${created.id}` as any);
-    } catch {
-      Alert.alert('오류', '일기 생성에 실패했어요. 다시 시도해주세요.');
+    } catch (error) {
+      console.error('Diary generation failed', error);
+      Alert.alert('일기 생성 실패', getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
