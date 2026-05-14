@@ -102,11 +102,17 @@ const STEPS: Step[] = [
   },
 ];
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : '알 수 없는 오류가 발생했어요.';
+}
+
+
 export default function DiaryCreateScreen() {
   const router = useRouter();
   const {
     draftAnswer,
     setDraftAnswer,
+    draftPhotoUri,
     resetDraft,
     selectedDate,
     setLastGeneratedDiary,
