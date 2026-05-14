@@ -49,13 +49,8 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>하루묶음</Text>
-        <TouchableOpacity
-          hitSlop={8}
-          style={styles.headerIconBtn}
-          onPress={() => router.push("/mypage")}
-        >
-          <Ionicons name="person-outline" size={20} color={colors.text} />
+        <TouchableOpacity hitSlop={8} style={styles.headerIconBtn} onPress={() => router.push('/mypage')}>
+          <Ionicons name="person-circle-outline" size={26} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -197,6 +192,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: 0.2,
   },
+
   // CTA Button
   ctaButton: {
     flexDirection: "row",
