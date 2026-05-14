@@ -108,13 +108,14 @@ function getErrorMessage(error: unknown) {
 
 export default function DiaryCreateScreen() {
   const router = useRouter();
-  const { draftAnswer, 
-         setDraftAnswer, 
-         draftPhotoUri, 
-         resetDraft, 
-         selectedDate, 
-         setLastGeneratedDiary } =
-    useDiaryStore();
+  const {
+    draftAnswer,
+    setDraftAnswer,
+    draftPhotoUri,
+    resetDraft,
+    selectedDate,
+    setLastGeneratedDiary,
+  } = useDiaryStore();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [textInput, setTextInput] = useState('');
@@ -182,7 +183,7 @@ export default function DiaryCreateScreen() {
       });
       setLastGeneratedDiary(created);
       resetDraft();
-      router.replace(`/diary/${created.id || created.diary_date}` as any);
+      router.replace(`/diary/${created.id}` as any);
     } catch (error) {
       console.error('Diary generation failed', error);
       Alert.alert('일기 생성 실패', getErrorMessage(error));
