@@ -208,12 +208,16 @@ export async function pokeFriend(receiverId: string) {
     data: { session },
   } = await supabase.auth.getSession();
 
+  if (!session?.access_token) {
+    throw new Error("로그인이 필요합니다.");
+  }
+
   const response = await fetch(
     `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/poke-friend`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${session?.access_token}`,
+        Authorization: `Bearer ${session.access_token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -222,10 +226,11 @@ export async function pokeFriend(receiverId: string) {
     },
   );
 
-  const result = await response.json();
+  const responseText = await response.text();
+  const result: { error?: string } = responseText ? JSON.parse(responseText) : {};
 
   if (!response.ok) {
-    throw new Error(result.error);
+    throw new Error(result.error ?? "친구 찌르기에 실패했습니다.");
   }
 
   return result;

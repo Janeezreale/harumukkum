@@ -143,13 +143,17 @@ JSON 형식:
 
     // 이미지 저장
     if (imageUrls.length > 0) {
-      await supabase.from("diary_images").insert(
+      const { error: imageInsertError } = await supabase.from("diary_images").insert(
         imageUrls.map((url: string) => ({
           diary_id: diary.id,
           user_id: user.id,
           image_url: url,
         })),
       );
+
+      if (imageInsertError) {
+        throw imageInsertError;
+      }
     }
 
     return Response.json({

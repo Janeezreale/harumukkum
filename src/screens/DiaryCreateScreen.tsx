@@ -18,18 +18,8 @@ import { colors } from '../constants/colors';
 import { emotions } from '../constants/emotions';
 import { validateRequiredDiaryAnswers } from '../utils/validation';
 import { useDiaryStore } from '../store/diaryStore';
-import type { DiaryAnswer, DiaryCreateInput } from '../types/diary';
-
-// TODO: replace with api/diary.createDiary(input)
-async function mockCreateDiary(input: DiaryCreateInput) {
-  await new Promise((r) => setTimeout(r, 1000));
-
-  return {
-    id: 'mock-' + Date.now(),
-    ...input,
-    body: 'AI가 생성한 본문: 오늘 하루도 수고했어요.',
-  };
-}
+import type { DiaryAnswer } from '../types/diary';
+import { generateDiary } from '../api/diary';
 
 type StepKey = keyof DiaryAnswer;
 
@@ -189,19 +179,7 @@ export default function DiaryCreateScreen() {
     setIsLoading(true);
 
     try {
-      const input: DiaryCreateInput = {
-        diary_date: selectedDate,
-        emotion: draftAnswer.emotion!,
-        what_text: draftAnswer.what_text ?? '',
-        who_text: draftAnswer.who_text ?? '',
-        when_text: draftAnswer.when_text ?? '',
-        where_text: draftAnswer.where_text ?? '',
-        why_text: draftAnswer.why_text ?? '',
-        photo_url: draftPhotoUri ?? null,
-        is_public: false,
-      };
-
-      const created = await mockCreateDiary(input);
+      const imageUrls = draftPhotoUri ? [draftPhotoUri] : [];
 
       const created = await generateDiary({
         diaryDate: selectedDate,
