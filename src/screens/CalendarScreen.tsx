@@ -5,56 +5,59 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  Image,
   Dimensions,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../constants/colors';
+  ActivityIndicator,
+} from "react-native";
+import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../constants/colors";
+import { getMyDiaries } from "../api/diary";
+import type { Diary } from "../types/diary";
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CELL_SIZE = (SCREEN_WIDTH - 40 - 6 * 4) / 7; // 7 columns, 4px gaps
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const CELL_SIZE = (SCREEN_WIDTH - 40 - 6 * 4) / 7;
 
-const DAYS_OF_WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+const DAYS_OF_WEEK = ["일", "월", "화", "수", "목", "금", "토"];
 
-// Mock calendar data - days with AI-generated images
-type CalendarDay = {
-  day: number;
-  hasDiary: boolean;
-  imageUri?: string;
-};
-
-function generateMockDays(): CalendarDay[] {
-  const days: CalendarDay[] = [];
-  // Previous month overflow (29, 30)
-  // Current month: 1-30
-  for (let i = 1; i <= 30; i++) {
-    const hasDiary = i <= 28 && Math.random() > 0.15;
-    days.push({
-      day: i,
-      hasDiary,
-      imageUri: hasDiary
-        ? `https://picsum.photos/seed/day${i}/200/200`
-        : undefined,
-    });
-  }
-  return days;
+function getDaysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate();
 }
 
-const MOCK_DAYS = generateMockDays();
-
-// Calculate first day offset (for May 2024, starts on Wednesday = 3)
-const FIRST_DAY_OFFSET = 3;
+function getFirstDayOfMonth(year: number, month: number) {
+  return new Date(year, month, 1).getDay();
+}
 
 export default function CalendarScreen() {
   const router = useRouter();
+  const now = new Date();
+  const [year] = useState(now.getFullYear());
+  const [month] = useState(now.getMonth());
+  const [diaryMap, setDiaryMap] = useState<Record<string, Diary>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Build grid including offset
-  const gridCells: (CalendarDay | null)[] = [];
-  for (let i = 0; i < FIRST_DAY_OFFSET; i++) {
-    gridCells.push(null); // empty cells for offset
-  }
-  MOCK_DAYS.forEach((d) => gridCells.push(d));
+  useEffect(() => {
+    getMyDiaries()
+      .then((diaries) => {
+        const map: Record<string, Diary> = {};
+        diaries.forEach((d: Diary) => {
+          map[d.diary_date] = d;
+        });
+        setDiaryMap(map);
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDay = getFirstDayOfMonth(year, month);
+
+  const gridCells: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) gridCells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) gridCells.push(d);
+
+  const monthLabel = `${year}년 ${month + 1}월`;
+  const today = now.getDate();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -62,73 +65,86 @@ export default function CalendarScreen() {
       <View style={styles.header}>
         <View style={{ width: 22 }} />
         <Text style={styles.headerTitle}>한 달 묶음</Text>
-        <TouchableOpacity hitSlop={8} onPress={() => router.push('/mypage' as any)}>
+        <TouchableOpacity hitSlop={8} onPress={() => router.push("/mypage" as any)}>
           <Ionicons name="person-outline" size={22} color={colors.black} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Day of week headers */}
-        <View style={styles.weekHeader}>
-          {DAYS_OF_WEEK.map((d, i) => (
-            <Text
-              key={d}
-              style={[
-                styles.weekDay,
-                i === 0 && styles.weekDaySun,
-                i === 6 && styles.weekDaySat,
-              ]}
-            >
-              {d}
-            </Text>
-          ))}
+      {isLoading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator color={colors.primary} />
         </View>
-
-        {/* Calendar grid */}
-        <View style={styles.calendarGrid}>
-          {gridCells.map((cell, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.dayCell}
-              activeOpacity={cell?.hasDiary ? 0.7 : 1}
-              onPress={() => {
-                if (cell?.hasDiary) {
-                  router.push(`/diary/${cell.day}` as any);
-                }
-              }}
-            >
-              {cell ? (
-                <>
-                  {cell.imageUri ? (
-                    <Image source={{ uri: cell.imageUri }} style={styles.dayImage} />
-                  ) : (
-                    <View style={styles.dayEmpty} />
-                  )}
-                  <Text style={[
-                    styles.dayNumber,
-                    cell.imageUri && styles.dayNumberOnImage,
-                  ]}>
-                    {cell.day}
-                  </Text>
-                </>
-              ) : null}
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* CTA Button */}
-        <TouchableOpacity
-          style={styles.ctaButton}
-          onPress={() => router.push('/create')}
-          activeOpacity={0.85}
+      ) : (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.ctaText}>오늘의 하루 묶기</Text>
-        </TouchableOpacity>
-      </ScrollView>
+          <Text style={styles.monthLabel}>{monthLabel}</Text>
+
+          {/* Day of week headers */}
+          <View style={styles.weekHeader}>
+            {DAYS_OF_WEEK.map((d, i) => (
+              <Text
+                key={d}
+                style={[
+                  styles.weekDay,
+                  i === 0 && styles.weekDaySun,
+                  i === 6 && styles.weekDaySat,
+                ]}
+              >
+                {d}
+              </Text>
+            ))}
+          </View>
+
+          {/* Calendar grid */}
+          <View style={styles.calendarGrid}>
+            {gridCells.map((day, index) => {
+              if (day === null) {
+                return <View key={`empty-${index}`} style={styles.dayCell} />;
+              }
+
+              const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+              const diary = diaryMap[dateStr];
+              const isToday = day === today;
+
+              return (
+                <TouchableOpacity
+                  key={day}
+                  style={[styles.dayCell, diary && styles.dayCellWithDiary]}
+                  activeOpacity={diary ? 0.7 : 1}
+                  onPress={() => {
+                    if (diary) router.push(`/diary/${diary.id}` as any);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.dayNumber,
+                      isToday && styles.dayNumberToday,
+                      diary && styles.dayNumberWithDiary,
+                    ]}
+                  >
+                    {day}
+                  </Text>
+                  {diary && (
+                    <View style={styles.diaryDot} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* CTA Button */}
+          <TouchableOpacity
+            style={styles.ctaButton}
+            onPress={() => router.push("/create")}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.ctaText}>오늘의 하루 묶기</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -136,27 +152,36 @@ export default function CalendarScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: colors.black },
+  headerTitle: { fontSize: 17, fontWeight: "700", color: colors.black },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 32 },
 
+  monthLabel: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.black,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+
   // Week header
   weekHeader: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 8,
   },
   weekDay: {
     width: CELL_SIZE,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: "500",
     color: colors.gray,
     marginHorizontal: 2,
     paddingVertical: 8,
@@ -166,56 +191,54 @@ const styles = StyleSheet.create({
 
   // Calendar grid
   calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 4,
   },
   dayCell: {
     width: CELL_SIZE,
     height: CELL_SIZE,
-    borderRadius: 8,
-    overflow: 'hidden',
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dayImage: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    borderRadius: 8,
-  },
-  dayEmpty: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: colors.grayLight,
-    borderRadius: 8,
+  },
+  dayCellWithDiary: {
+    backgroundColor: colors.primaryBg,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
   },
   dayNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.black,
-    zIndex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.text,
   },
-  dayNumberOnImage: {
-    color: colors.white,
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+  dayNumberToday: {
+    color: colors.primary,
+    fontWeight: "800",
+  },
+  dayNumberWithDiary: {
+    color: colors.primary,
+  },
+  diaryDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: colors.primary,
+    marginTop: 2,
   },
 
   // CTA
   ctaButton: {
-    backgroundColor: colors.blackDark,
+    backgroundColor: colors.black,
     borderRadius: 14,
     paddingVertical: 18,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 24,
   },
   ctaText: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

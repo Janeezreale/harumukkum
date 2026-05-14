@@ -18,17 +18,11 @@ import { colors } from '../constants/colors';
 import { emotions } from '../constants/emotions';
 import { validateRequiredDiaryAnswers } from '../utils/validation';
 import { useDiaryStore } from '../store/diaryStore';
-import type { DiaryAnswer, DiaryCreateInput } from '../types/diary';
+import { generateDiary } from '../api/diary';
+import type { DiaryAnswer } from '../types/diary';
 
-// TODO: replace with api/diary.createDiary(input)
-async function mockCreateDiary(input: DiaryCreateInput) {
-  await new Promise((r) => setTimeout(r, 1000));
-
-  return {
-    id: 'mock-' + Date.now(),
-    ...input,
-    body: 'AI가 생성한 본문: 오늘 하루도 수고했어요.',
-  };
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : '알 수 없는 오류가 발생했어요.';
 }
 
 type StepKey = keyof DiaryAnswer;
@@ -112,16 +106,11 @@ const STEPS: Step[] = [
   },
 ];
 
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : '알 수 없는 오류가 발생했어요.';
-}
-
 export default function DiaryCreateScreen() {
   const router = useRouter();
   const {
     draftAnswer,
     setDraftAnswer,
-    draftPhotoUri,
     resetDraft,
     selectedDate,
     setLastGeneratedDiary,
@@ -189,20 +178,6 @@ export default function DiaryCreateScreen() {
     setIsLoading(true);
 
     try {
-      const input: DiaryCreateInput = {
-        diary_date: selectedDate,
-        emotion: draftAnswer.emotion!,
-        what_text: draftAnswer.what_text ?? '',
-        who_text: draftAnswer.who_text ?? '',
-        when_text: draftAnswer.when_text ?? '',
-        where_text: draftAnswer.where_text ?? '',
-        why_text: draftAnswer.why_text ?? '',
-        photo_url: draftPhotoUri ?? null,
-        is_public: false,
-      };
-
-      const created = await mockCreateDiary(input);
-
       const created = await generateDiary({
         diaryDate: selectedDate,
         emotion: draftAnswer.emotion!,
@@ -211,7 +186,6 @@ export default function DiaryCreateScreen() {
         whenText: draftAnswer.when_text ?? '',
         whereText: draftAnswer.where_text ?? '',
         reasonText: draftAnswer.why_text ?? '',
-        imageUrls,
       });
       setLastGeneratedDiary(created);
       resetDraft();
