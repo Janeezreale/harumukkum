@@ -14,7 +14,6 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LineChart } from "react-native-gifted-charts";
 import { colors } from "../constants/colors";
-import { emotions } from "../constants/emotions";
 import { getMyDiaries } from "../api/diary";
 import { getWeeklyReports, generateWeeklyReport } from "../api/report";
 import { getWeekRange } from "../utils/date";
@@ -25,11 +24,6 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CHART_WIDTH = SCREEN_WIDTH - 100;
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
-
-function getEmotionEmoji(emotionId: string | null): string {
-  if (!emotionId) return "";
-  return emotions.find((e) => e.id === emotionId)?.emoji ?? "";
-}
 
 function getInsightColor(type: ReportInsight["type"]): string {
   if (type === "increase") return colors.positive;
@@ -51,9 +45,11 @@ export default function ReportScreen() {
         getMyDiaries(),
       ]);
       setDiaries(diariesData);
-      if (reportsData.length > 0) {
-        setReport(reportsData[0] as WeeklyReport);
-      }
+      const { startDate, endDate } = getWeekRange();
+      const currentWeekReport = reportsData.find(
+        (item) => item.week_start === startDate && item.week_end === endDate
+      );
+      setReport((currentWeekReport ?? null) as WeeklyReport | null);
     } catch {
       // silent
     } finally {
@@ -79,6 +75,11 @@ export default function ReportScreen() {
   }
 
   const hasDiaries = diaries.length > 0;
+  const { startDate, endDate } = getWeekRange();
+  const currentWeekDiaries = diaries.filter((diary) =>
+    diary.diary_date >= startDate && diary.diary_date <= endDate
+  );
+  const hasCurrentWeekDiaries = currentWeekDiaries.length > 0;
 
   if (isLoading) {
     return (
@@ -128,6 +129,13 @@ export default function ReportScreen() {
 
   // Has diaries but no report yet
   if (!report) {
+    const title = hasCurrentWeekDiaries
+      ? "리포트를 생성해보세요"
+      : "이번 주 일기가 필요해요";
+    const description = hasCurrentWeekDiaries
+      ? `이번 주 일기 ${currentWeekDiaries.length}개를 바탕으로\nAI가 분석 리포트를 만들어드려요.`
+      : "리포트는 이번 주 일기를 기준으로 생성돼요.\n이번 주 일기를 먼저 작성해 주세요.";
+
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
@@ -139,25 +147,33 @@ export default function ReportScreen() {
         </View>
         <View style={styles.centered}>
           <Ionicons name="sparkles" size={48} color={colors.primary} />
-          <Text style={styles.emptyTitle}>리포트를 생성해보세요</Text>
-          <Text style={styles.emptyDesc}>
-            이번 주 일기 {diaries.length}개를 바탕으로{"\n"}AI가 분석 리포트를 만들어드려요.
-          </Text>
-          <TouchableOpacity
-            style={styles.generateBtn}
-            onPress={handleGenerate}
-            disabled={isGenerating}
-            activeOpacity={0.85}
-          >
-            {isGenerating ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <>
-                <Ionicons name="sparkles" size={16} color={colors.white} />
-                <Text style={styles.generateBtnText}>리포트 생성하기</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          <Text style={styles.emptyTitle}>{title}</Text>
+          <Text style={styles.emptyDesc}>{description}</Text>
+          {hasCurrentWeekDiaries ? (
+            <TouchableOpacity
+              style={styles.generateBtn}
+              onPress={handleGenerate}
+              disabled={isGenerating}
+              activeOpacity={0.85}
+            >
+              {isGenerating ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <>
+                  <Ionicons name="sparkles" size={16} color={colors.white} />
+                  <Text style={styles.generateBtnText}>리포트 생성하기</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.writeBtn}
+              onPress={() => router.push("/create")}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.writeBtnText}>일기 쓰기</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -169,7 +185,9 @@ export default function ReportScreen() {
   }));
 
   const insights = report.insights ?? [];
-  const keywords = report.keywords ?? [];
+  const keywords = report.keywords ?? report.top_keywords ?? [];
+  const summary = report.summary?.trim();
+  const emotionSummary = report.emotion_summary?.trim();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -192,6 +210,28 @@ export default function ReportScreen() {
             {report.week_start} ~ {report.week_end}
           </Text>
         </View>
+
+        {/* Summary */}
+        {summary ? (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Weekly Summary</Text>
+              <Ionicons name="document-text-outline" size={16} color={colors.primary} />
+            </View>
+            <Text style={styles.summaryBody}>{summary}</Text>
+          </View>
+        ) : null}
+
+        {/* Emotion Summary */}
+        {emotionSummary ? (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Emotion Summary</Text>
+              <Ionicons name="heart-outline" size={16} color={colors.primary} />
+            </View>
+            <Text style={styles.summaryBody}>{emotionSummary}</Text>
+          </View>
+        ) : null}
 
         {/* Emotion Storyline */}
         {chartData.length > 0 && (
@@ -372,6 +412,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cardTitle: { fontSize: 16, fontWeight: "700", color: colors.black },
+  summaryBody: { fontSize: 14, lineHeight: 22, color: colors.grayDark },
 
   // Chart
   chartWrapper: { overflow: "hidden" },
