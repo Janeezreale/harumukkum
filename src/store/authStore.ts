@@ -7,6 +7,7 @@ type AuthState = {
   session: Session | null;
   isLoggedIn: boolean;
   setAuth: (payload: { user: User; session: Session | null }) => void;
+  updateUser: (patch: Partial<User>) => void;
   clearAuth: () => void;
 };
 
@@ -16,6 +17,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoggedIn: false,
   setAuth: ({ user, session }) =>
     set({ user, session, isLoggedIn: true }),
+  updateUser: (patch) =>
+    set((state) => ({
+      user: state.user ? { ...state.user, ...patch } : state.user,
+    })),
   clearAuth: () =>
     set({ user: null, session: null, isLoggedIn: false }),
 }));

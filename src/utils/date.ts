@@ -42,6 +42,18 @@ export function isToday(date: DateInput) {
   return toDateKey(date) === getTodayDate();
 }
 
+export function formatDiaryDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${days[d.getDay()]}`;
+}
+
+export function formatDiaryDateShort(dateStr: string): string {
+  const d = new Date(dateStr);
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+}
+
 export function getWeekRange(date: DateInput = new Date()): WeekRange {
   const target = toDate(date);
   const day = target.getDay();
