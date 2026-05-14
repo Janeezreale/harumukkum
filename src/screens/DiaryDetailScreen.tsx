@@ -19,6 +19,8 @@ import type { Diary } from '../types/diary';
 import { deleteDiary, getDiaryByDate, getDiaryById, updateDiary } from '../api/diary';
 import { useDiaryStore } from '../store/diaryStore';
 import { supabase } from '../api/supabase';
+import { formatDiaryDate } from '../utils/date';
+import { getDiaryTitle, getDiaryContent } from '../utils/diary';
 
 function showToast(message: string) {
   if (Platform.OS === 'android') {
@@ -26,20 +28,6 @@ function showToast(message: string) {
   } else {
     Alert.alert('', message);
   }
-}
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  const days = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${days[d.getDay()]}`;
-}
-
-function getDiaryTitle(diary: Diary) {
-  return diary.title || '오늘의 일기';
-}
-
-function getDiaryContent(diary: Diary) {
-  return diary.content || diary.body || '생성된 일기 본문이 비어 있어요.';
 }
 
 export default function DiaryDetailScreen() {
@@ -167,7 +155,7 @@ export default function DiaryDetailScreen() {
             }
 
             showToast('일기가 삭제되었어요');
-            router.replace('/');
+            router.replace('/(tabs)' as any);
           } catch (error) {
             console.error('Diary delete failed', error);
 
@@ -221,12 +209,15 @@ export default function DiaryDetailScreen() {
         throw error;
       }
 
-      showToast('일기가 저장되었어요');
-
       setLastGeneratedDiary(null);
       resetDraft();
 
-      router.replace('/');
+      Alert.alert('저장 완료', '일기가 저장되었습니다.', [
+        {
+          text: '확인',
+          onPress: () => router.replace('/(tabs)' as any),
+        },
+      ]);
     } catch (error) {
       console.error('Diary save failed', error);
 
@@ -253,7 +244,7 @@ export default function DiaryDetailScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.replace('/')} hitSlop={8}>
+          <TouchableOpacity onPress={() => router.replace('/(tabs)' as any)} hitSlop={8}>
             <Ionicons name="arrow-back" size={22} color={colors.black} />
           </TouchableOpacity>
 
@@ -326,7 +317,7 @@ export default function DiaryDetailScreen() {
         <View style={styles.dateRow}>
           <View style={styles.dateBadge}>
             <View style={styles.dateDot} />
-            <Text style={styles.dateText}>{formatDate(diary.diary_date)}</Text>
+            <Text style={styles.dateText}>{formatDiaryDate(diary.diary_date)}</Text>
           </View>
 
           {!isGeneratedPreview && (
@@ -354,7 +345,7 @@ export default function DiaryDetailScreen() {
         )}
 
         <View style={styles.bodyCard}>
-          <Text style={styles.bodyText}>{getDiaryContent(diary)}</Text>
+          <Text style={styles.bodyText}>{getDiaryContent(diary, '생성된 일기 본문이 비어 있어요.')}</Text>
         </View>
 
         {isGeneratedPreview && (

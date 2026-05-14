@@ -47,7 +47,7 @@ export default function ReportScreen() {
           </Text>
           <TouchableOpacity
             style={styles.writeBtn}
-            onPress={() => router.push("/(tabs)/create")}
+            onPress={() => router.push("/create")}
             activeOpacity={0.85}
           >
             <Text style={styles.writeBtnText}>일기 쓰기</Text>

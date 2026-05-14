@@ -22,12 +22,7 @@ import {
   type FriendListItem,
   type FriendDiaryItem,
 } from "../api/friends";
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  const days = ["일", "월", "화", "수", "목", "금", "토"];
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
-}
+import { formatDiaryDateShort } from "../utils/date";
 
 function getEmoji(emotionId: string | null): string {
   if (!emotionId) return "";
@@ -81,7 +76,7 @@ function DiaryCard({ item }: { item: FriendDiaryItem }) {
             style={styles.authorAvatar}
           />
           <Text style={styles.authorName}>{item.author?.nickname ?? "친구"}</Text>
-          <Text style={styles.cardDate}>{formatDate(item.diary_date)}</Text>
+          <Text style={styles.cardDate}>{formatDiaryDateShort(item.diary_date)}</Text>
         </View>
         <Text style={styles.cardTitle} numberOfLines={1}>
           {emoji ? `${emoji} ` : ""}{item.title ?? "오늘의 일기"}
@@ -148,7 +143,7 @@ export default function FriendsScreen() {
           <View style={{ width: 22 }} />
           <Text style={styles.headerTitle}>친구들의 하루</Text>
           <TouchableOpacity hitSlop={8} onPress={() => router.push("/friends/manage" as any)}>
-            <Ionicons name="people-outline" size={22} color={colors.black} />
+            <Ionicons name="person-add-outline" size={22} color={colors.black} />
           </TouchableOpacity>
         </View>
         <View style={styles.centered}>
@@ -165,7 +160,7 @@ export default function FriendsScreen() {
           <View style={{ width: 22 }} />
           <Text style={styles.headerTitle}>친구들의 하루</Text>
           <TouchableOpacity hitSlop={8} onPress={() => router.push("/friends/manage" as any)}>
-            <Ionicons name="people-outline" size={22} color={colors.black} />
+            <Ionicons name="person-add-outline" size={22} color={colors.black} />
           </TouchableOpacity>
         </View>
         <View style={styles.centered}>

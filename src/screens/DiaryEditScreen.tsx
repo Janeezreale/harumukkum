@@ -19,14 +19,7 @@ import { colors } from '../constants/colors';
 import { getDiaryById, updateDiary } from '../api/diary';
 import { useDiaryStore } from '../store/diaryStore';
 import type { Diary } from '../types/diary';
-
-function getDiaryTitle(diary: Diary) {
-  return diary.title || '오늘의 일기';
-}
-
-function getDiaryContent(diary: Diary) {
-  return diary.content || diary.body || '';
-}
+import { getDiaryTitle, getDiaryContent } from '../utils/diary';
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : '알 수 없는 오류가 발생했어요.';
@@ -36,7 +29,7 @@ export default function DiaryEditScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const diaryId = Array.isArray(id) ? id[0] : id ?? '';
-  const { lastGeneratedDiary, setLastGeneratedDiary } = useDiaryStore();
+  const { lastGeneratedDiary } = useDiaryStore();
 
   const [diary, setDiary] = useState<Diary | null>(null);
   const [title, setTitle] = useState('');
@@ -97,14 +90,17 @@ export default function DiaryEditScreen() {
 
     setIsSaving(true);
     try {
-      const updatedDiary = await updateDiary(diary.id, {
+      await updateDiary(diary.id, {
         title: nextTitle,
         content: nextContent,
         is_public: isPublic,
       });
-      setDiary(updatedDiary);
-      setLastGeneratedDiary(updatedDiary);
-      router.replace(`/diary/${updatedDiary.id}` as any);
+      Alert.alert('저장 완료', '수정 내용이 저장되었습니다.', [
+        {
+          text: '확인',
+          onPress: () => router.replace(`/diary/${diary.id}` as any),
+        },
+      ]);
     } catch (error) {
       console.error('Diary update failed', error);
       Alert.alert('저장 실패', getErrorMessage(error));
