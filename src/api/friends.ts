@@ -309,6 +309,22 @@ export async function getFriendDiaries(): Promise<FriendDiaryItem[]> {
   })) as FriendDiaryItem[];
 }
 
+// 오늘 찌른 친구 ID 목록
+export async function getTodayPokedFriendIds(): Promise<string[]> {
+  const userId = await getAuthenticatedUserId();
+  const today = new Date().toISOString().split("T")[0];
+
+  const { data, error } = await supabase
+    .from("pokes")
+    .select("receiver_id")
+    .eq("sender_id", userId)
+    .eq("poke_date", today);
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => row.receiver_id);
+}
+
 // 찌르기
 export async function pokeFriend(receiverId: string) {
   const {

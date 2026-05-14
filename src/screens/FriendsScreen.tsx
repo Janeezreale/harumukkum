@@ -18,6 +18,7 @@ import { emotions } from "../constants/emotions";
 import {
   getFriends,
   getFriendDiaries,
+  getTodayPokedFriendIds,
   pokeFriend,
   type FriendListItem,
   type FriendDiaryItem,
@@ -103,12 +104,14 @@ export default function FriendsScreen() {
   const loadData = useCallback(async () => {
     try {
       setError(null);
-      const [friendsData, diariesData] = await Promise.all([
+      const [friendsData, diariesData, pokedIds] = await Promise.all([
         getFriends(),
         getFriendDiaries(),
+        getTodayPokedFriendIds(),
       ]);
       setFriends(friendsData);
       setDiaries(diariesData);
+      setPokedIds(new Set(pokedIds));
     } catch {
       setError("데이터를 불러오지 못했어요.");
     } finally {
