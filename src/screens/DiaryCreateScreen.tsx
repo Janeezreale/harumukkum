@@ -15,8 +15,6 @@ import {
 import { useRef, useState } from 'react';
 import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-
 import { colors } from '../constants/colors';
 import { emotions } from '../constants/emotions';
 import { validateRequiredDiaryAnswers } from '../utils/validation';
@@ -246,14 +244,29 @@ export default function DiaryCreateScreen() {
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
-    });
+    setIsLoading(true);
 
-    if (result.canceled) {
-      return;
+    try {
+      const imageUrls = draftPhotoUri ? [draftPhotoUri] : [];
+
+      const created = await generateDiary({
+        diaryDate: selectedDate,
+        emotion: draftAnswer.emotion!,
+        whatText: draftAnswer.what_text ?? '',
+        withWhomText: draftAnswer.who_text ?? '',
+        whenText: draftAnswer.when_text ?? '',
+        whereText: draftAnswer.where_text ?? '',
+        reasonText: draftAnswer.why_text ?? '',
+        imageUrls,
+      });
+      setLastGeneratedDiary(created);
+      resetDraft();
+      router.replace(`/diary/${created.id}` as any);
+    } catch (error) {
+      console.error('Diary generation failed', error);
+      Alert.alert('일기 생성 실패', getErrorMessage(error));
+    } finally {
+      setIsLoading(false);
     }
 
     setDraftPhotoUri(result.assets[0].uri);

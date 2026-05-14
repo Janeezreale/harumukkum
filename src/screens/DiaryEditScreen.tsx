@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -18,14 +19,7 @@ import { colors } from '../constants/colors';
 import { getDiaryById, updateDiary } from '../api/diary';
 import { useDiaryStore } from '../store/diaryStore';
 import type { Diary } from '../types/diary';
-
-function getDiaryTitle(diary: Diary) {
-  return diary.title || '오늘의 일기';
-}
-
-function getDiaryContent(diary: Diary) {
-  return diary.content || diary.body || '';
-}
+import { getDiaryTitle, getDiaryContent } from '../utils/diary';
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : '알 수 없는 오류가 발생했어요.';
@@ -40,6 +34,7 @@ export default function DiaryEditScreen() {
   const [diary, setDiary] = useState<Diary | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [isPublic, setIsPublic] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -63,6 +58,7 @@ export default function DiaryEditScreen() {
         if (data) {
           setTitle(getDiaryTitle(data));
           setContent(getDiaryContent(data));
+          setIsPublic(data.is_public ?? true);
         }
       } catch (error) {
         console.error('Diary edit load failed', error);
@@ -94,13 +90,21 @@ export default function DiaryEditScreen() {
 
     setIsSaving(true);
     try {
-      const updatedDiary = await updateDiary(diary.id, {
+      await updateDiary(diary.id, {
         title: nextTitle,
         content: nextContent,
+        is_public: isPublic,
       });
-      setDiary(updatedDiary);
-      setLastGeneratedDiary(updatedDiary);
-      router.replace(`/diary/${updatedDiary.id}` as any);
+      // 스토어에 캐시된 구버전 데이터가 있으면 초기화해서 디테일 화면이 DB에서 새로 불러오도록 함
+      if (lastGeneratedDiary?.id === diary.id) {
+        setLastGeneratedDiary(null);
+      }
+      Alert.alert('저장되었습니다.', '', [
+        {
+          text: '확인',
+          onPress: () => router.replace(`/diary/${diary.id}` as any),
+        },
+      ]);
     } catch (error) {
       console.error('Diary update failed', error);
       Alert.alert('저장 실패', getErrorMessage(error));
@@ -191,6 +195,28 @@ export default function DiaryEditScreen() {
             multiline
             textAlignVertical="top"
           />
+
+          <View style={styles.toggleRow}>
+            <View style={styles.toggleInfo}>
+              <Ionicons
+                name={isPublic ? 'globe-outline' : 'lock-closed-outline'}
+                size={16}
+                color={isPublic ? colors.primary : colors.gray}
+              />
+              <View style={styles.toggleTextGroup}>
+                <Text style={styles.toggleLabel}>공개 설정</Text>
+                <Text style={styles.toggleSub}>
+                  {isPublic ? '친구들이 이 일기를 볼 수 있어요' : '나만 볼 수 있어요'}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={isPublic}
+              onValueChange={setIsPublic}
+              trackColor={{ false: colors.grayBorder, true: colors.primaryLight }}
+              thumbColor={colors.white}
+            />
+          </View>
         </ScrollView>
 
         <View style={styles.bottomBar}>
@@ -292,6 +318,34 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 24,
     color: colors.black,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  toggleInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  toggleTextGroup: {
+    gap: 2,
+  },
+  toggleLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.black,
+  },
+  toggleSub: {
+    fontSize: 12,
+    color: colors.gray,
   },
   bottomBar: {
     paddingHorizontal: 20,
