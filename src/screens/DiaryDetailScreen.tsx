@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '../constants/colors';
 import type { Diary } from '../types/diary';
-import { deleteDiary, getDiaryByDate, getDiaryById } from '../api/diary';
+import { deleteDiary, getDiaryByDate, getDiaryById, updateDiary } from '../api/diary';
 import { useDiaryStore } from '../store/diaryStore';
 import { supabase } from '../api/supabase';
 
@@ -54,6 +54,7 @@ export default function DiaryDetailScreen() {
     useDiaryStore();
 
   const [diary, setDiary] = useState<Diary | null>(null);
+  const [isPublic, setIsPublic] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -78,6 +79,7 @@ export default function DiaryDetailScreen() {
       if (routeDiaryKey === 'generated') {
         if (mounted) {
           setDiary(lastGeneratedDiary ?? null);
+          setIsPublic(lastGeneratedDiary?.is_public ?? true);
           setIsLoading(false);
         }
         return;
@@ -89,6 +91,7 @@ export default function DiaryDetailScreen() {
       ) {
         if (mounted) {
           setDiary(lastGeneratedDiary);
+          setIsPublic(lastGeneratedDiary?.is_public ?? true);
           setIsLoading(false);
         }
         return;
@@ -104,8 +107,10 @@ export default function DiaryDetailScreen() {
         if (mounted) {
           if (Array.isArray(data)) {
             setDiary(data[0] ?? null);
+            setIsPublic(data[0]?.is_public ?? true);
           } else {
             setDiary(data);
+            setIsPublic(data?.is_public ?? true);
           }
         }
       } catch (error) {
@@ -127,6 +132,19 @@ export default function DiaryDetailScreen() {
       mounted = false;
     };
   }, [lastGeneratedDiary, routeDiaryKey]);
+
+  async function handleToggleVisibility() {
+    if (!diary) return;
+    setMenuVisible(false);
+    const next = !isPublic;
+    try {
+      await updateDiary(diary.id, { is_public: next });
+      setIsPublic(next);
+      showToast(next ? '공개로 변경되었어요' : '비공개로 변경되었어요');
+    } catch (error) {
+      Alert.alert('오류', error instanceof Error ? error.message : '변경에 실패했어요.');
+    }
+  }
 
   function handleDelete() {
     if (!diary || isDeleting) return;
@@ -191,6 +209,7 @@ export default function DiaryDetailScreen() {
             title: diary.title ?? '오늘의 일기',
             content: diary.content ?? diary.body ?? '',
             emotion: diary.emotion ?? null,
+            is_public: true,
             updated_at: new Date().toISOString(),
           },
           {
@@ -272,6 +291,21 @@ export default function DiaryDetailScreen() {
         <View style={styles.dropdown}>
           <TouchableOpacity
             style={styles.dropdownItem}
+            onPress={handleToggleVisibility}
+          >
+            <Ionicons
+              name={isPublic ? 'lock-closed-outline' : 'globe-outline'}
+              size={14}
+              color={colors.black}
+              style={{ marginRight: 6 }}
+            />
+            <Text style={styles.dropdownText}>
+              {isPublic ? '비공개로 변경' : '공개로 변경'}
+            </Text>
+          </TouchableOpacity>
+          <View style={styles.dropdownDivider} />
+          <TouchableOpacity
+            style={styles.dropdownItem}
             onPress={handleDelete}
             disabled={isDeleting}
           >
@@ -305,6 +339,19 @@ export default function DiaryDetailScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {!isGeneratedPreview && (
+          <View style={[styles.visibilityBadge, !isPublic && styles.visibilityBadgePrivate]}>
+            <Ionicons
+              name={isPublic ? 'globe-outline' : 'lock-closed-outline'}
+              size={11}
+              color={isPublic ? colors.primary : colors.gray}
+            />
+            <Text style={[styles.visibilityText, !isPublic && styles.visibilityTextPrivate]}>
+              {isPublic ? '친구들에게 공개' : '나만 보기'}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.bodyCard}>
           <Text style={styles.bodyText}>{getDiaryContent(diary)}</Text>
@@ -409,12 +456,44 @@ const styles = StyleSheet.create({
     minWidth: 120,
   },
   dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: colors.grayBorder,
+    marginHorizontal: 8,
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: colors.black,
   },
   dropdownDelete: {
     fontSize: 14,
     color: colors.negative,
+  },
+  visibilityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    backgroundColor: colors.primaryBg,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  visibilityBadgePrivate: {
+    backgroundColor: colors.grayLight,
+  },
+  visibilityText: {
+    fontSize: 11,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  visibilityTextPrivate: {
+    color: colors.gray,
   },
   scroll: {
     flex: 1,

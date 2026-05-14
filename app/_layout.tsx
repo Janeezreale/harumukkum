@@ -9,6 +9,7 @@ export default function RootLayout() {
       <Stack.Screen name="diary/[id]" />
       <Stack.Screen name="diary/edit/[id]" />
       <Stack.Screen name="diary/calendar" />
+      <Stack.Screen name="friends/manage" />
     </Stack>
   );
 }
