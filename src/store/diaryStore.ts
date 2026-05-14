@@ -7,9 +7,10 @@ type DiaryState = {
   draftAnswer: Partial<DiaryAnswer>;
   draftPhotoUri: string | null;
   lastGeneratedDiary: Diary | null;
+
   setSelectedDate: (date: string) => void;
   setDraftAnswer: (patch: Partial<DiaryAnswer>) => void;
-  setDraftPhoto: (uri: string | null) => void;
+  setDraftPhotoUri: (uri: string | null) => void;
   setLastGeneratedDiary: (diary: Diary | null) => void;
   resetDraft: () => void;
 };
@@ -19,10 +20,30 @@ export const useDiaryStore = create<DiaryState>((set) => ({
   draftAnswer: {},
   draftPhotoUri: null,
   lastGeneratedDiary: null,
+
   setSelectedDate: (date) => set({ selectedDate: date }),
+
   setDraftAnswer: (patch) =>
-    set((state) => ({ draftAnswer: { ...state.draftAnswer, ...patch } })),
-  setDraftPhoto: (uri) => set({ draftPhotoUri: uri }),
-  setLastGeneratedDiary: (diary) => set({ lastGeneratedDiary: diary }),
-  resetDraft: () => set({ draftAnswer: {}, draftPhotoUri: null }),
+    set((state) => ({
+      draftAnswer: {
+        ...state.draftAnswer,
+        ...patch,
+      },
+    })),
+
+  setDraftPhotoUri: (uri) =>
+    set({
+      draftPhotoUri: uri,
+    }),
+
+  setLastGeneratedDiary: (diary) =>
+    set({
+      lastGeneratedDiary: diary,
+    }),
+
+  resetDraft: () =>
+    set({
+      draftAnswer: {},
+      draftPhotoUri: null,
+    }),
 }));
