@@ -15,6 +15,7 @@ import {
 import { useRef, useState } from 'react';
 import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../constants/colors';
 import { emotions } from '../constants/emotions';
 import { validateRequiredDiaryAnswers } from '../utils/validation';
@@ -244,29 +245,14 @@ export default function DiaryCreateScreen() {
       return;
     }
 
-    setIsLoading(true);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.8,
+    });
 
-    try {
-      const imageUrls = draftPhotoUri ? [draftPhotoUri] : [];
-
-      const created = await generateDiary({
-        diaryDate: selectedDate,
-        emotion: draftAnswer.emotion!,
-        whatText: draftAnswer.what_text ?? '',
-        withWhomText: draftAnswer.who_text ?? '',
-        whenText: draftAnswer.when_text ?? '',
-        whereText: draftAnswer.where_text ?? '',
-        reasonText: draftAnswer.why_text ?? '',
-        imageUrls,
-      });
-      setLastGeneratedDiary(created);
-      resetDraft();
-      router.replace(`/diary/${created.id}` as any);
-    } catch (error) {
-      console.error('Diary generation failed', error);
-      Alert.alert('일기 생성 실패', getErrorMessage(error));
-    } finally {
-      setIsLoading(false);
+    if (result.canceled) {
+      return;
     }
 
     setDraftPhotoUri(result.assets[0].uri);
@@ -716,7 +702,7 @@ const styles = StyleSheet.create({
     minHeight: 54,
     borderWidth: 1,
     borderColor: 'rgba(196, 199, 199, 0.4)',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.04,
     shadowRadius: 20,
@@ -742,7 +728,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderWidth: 1,
     borderColor: colors.grayBorder,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -878,7 +864,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 18,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
