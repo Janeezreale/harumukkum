@@ -58,10 +58,20 @@ export async function generateDiary(params: GenerateDiaryParams) {
 }
 
 // 일기 목록 조회
+// 내 일기 목록 조회
 export async function getMyDiaries() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("로그인이 필요합니다.");
+  }
+
   const { data, error } = await supabase
     .from("diaries")
     .select("*")
+    .eq("user_id", user.id)
     .order("diary_date", {
       ascending: false,
     });
@@ -72,7 +82,16 @@ export async function getMyDiaries() {
 }
 
 // 날짜별 조회
+// 내 날짜별 일기 조회
 export async function getDiaryByDate(diaryDate: string) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("로그인이 필요합니다.");
+  }
+
   const { data, error } = await supabase
     .from("diaries")
     .select(
@@ -83,6 +102,7 @@ export async function getDiaryByDate(diaryDate: string) {
       )
     `,
     )
+    .eq("user_id", user.id)
     .eq("diary_date", diaryDate)
     .single();
 
