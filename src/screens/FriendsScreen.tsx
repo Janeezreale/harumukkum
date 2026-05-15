@@ -84,7 +84,7 @@ function DiaryCard({ item }: { item: FriendDiaryItem }) {
           {emoji ? `${emoji} ` : ""}{item.title ?? "오늘의 일기"}
         </Text>
         {item.content ? (
-          <Text style={styles.cardContent} numberOfLines={3}>
+          <Text style={styles.cardContent}>
             {item.content}
           </Text>
         ) : null}
