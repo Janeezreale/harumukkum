@@ -40,22 +40,29 @@ function normalizeRelation<T>(value: T | T[] | null): T | null {
 async function getAuthenticatedUserId() {
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (error || !user) {
     throw new Error("로그인이 필요합니다.");
   }
 
   return user.id;
 }
 
-// 유저 검색 (자기 자신 제외)
+function getKoreaTodayString() {
+  return new Date(Date.now() + 9 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
+}
+
+// 유저 검색
 export async function searchUsers(keyword: string) {
   const userId = await getAuthenticatedUserId();
 
   const { data, error } = await supabase
     .from("users")
-    .select(`id, username, nickname, profile_image_url`)
+    .select("id, username, nickname, profile_image_url")
     .ilike("username", `%${keyword}%`)
     .neq("id", userId)
     .limit(20);
@@ -81,7 +88,7 @@ export async function getReceivedFriendRequests(): Promise<FriendRequest[]> {
         nickname,
         profile_image_url
       )
-    `,
+    `
     )
     .eq("receiver_id", userId)
     .eq("status", "pending")
@@ -143,7 +150,10 @@ export async function sendFriendRequest(receiverId: string) {
   });
 
   if (error) {
-    if (error.code === "23505") throw new Error("이미 친구 요청을 보냈거나 친구 관계입니다.");
+    if (error.code === "23505") {
+      throw new Error("이미 친구 요청을 보냈거나 친구 관계입니다.");
+    }
+
     throw error;
   }
 }
@@ -160,7 +170,8 @@ export async function getSentFriendRequests(): Promise<SentFriendRequest[]> {
 
   const { data, error } = await supabase
     .from("friendships")
-    .select(`
+    .select(
+      `
       id,
       created_at,
       receiver:receiver_id (
@@ -169,7 +180,8 @@ export async function getSentFriendRequests(): Promise<SentFriendRequest[]> {
         nickname,
         profile_image_url
       )
-    `)
+    `
+    )
     .eq("requester_id", userId)
     .eq("status", "pending")
     .order("created_at", { ascending: false });
@@ -179,10 +191,16 @@ export async function getSentFriendRequests(): Promise<SentFriendRequest[]> {
   return ((data ?? []) as FriendshipRow[])
     .map((row) => {
       const receiver = normalizeRelation(row.receiver);
+
       if (!receiver) return null;
-      return { id: row.id, receiver, created_at: row.created_at };
+
+      return {
+        id: row.id,
+        receiver,
+        created_at: row.created_at,
+      };
     })
-    .filter((r): r is SentFriendRequest => r !== null);
+    .filter((request): request is SentFriendRequest => request !== null);
 }
 
 // 보낸 친구 요청 취소
@@ -220,7 +238,7 @@ export async function getFriends(): Promise<FriendListItem[]> {
         nickname,
         profile_image_url
       )
-    `,
+    `
     )
     .or(`requester_id.eq.${userId},receiver_id.eq.${userId}`)
     .eq("status", "accepted")
@@ -232,8 +250,7 @@ export async function getFriends(): Promise<FriendListItem[]> {
     .map((friendship) => {
       const requester = normalizeRelation(friendship.requester);
       const receiver = normalizeRelation(friendship.receiver);
-      const friend =
-        friendship.requester_id === userId ? receiver : requester;
+      const friend = friendship.requester_id === userId ? receiver : requester;
 
       if (!friend) return null;
 
@@ -273,15 +290,21 @@ export async function getFriendDiaries(): Promise<FriendDiaryItem[]> {
     .eq("status", "accepted");
 
   if (friendsError) throw friendsError;
-  if (!friendships || friendships.length === 0) return [];
 
-  const friendIds = friendships.map((f) =>
-    f.requester_id === userId ? f.receiver_id : f.requester_id
+  if (!friendships || friendships.length === 0) {
+    return [];
+  }
+
+  const friendIds = friendships.map((friendship) =>
+    friendship.requester_id === userId
+      ? friendship.receiver_id
+      : friendship.requester_id
   );
 
   const { data, error } = await supabase
     .from("diaries")
-    .select(`
+    .select(
+      `
       id,
       diary_date,
       title,
@@ -295,8 +318,10 @@ export async function getFriendDiaries(): Promise<FriendDiaryItem[]> {
         username,
         profile_image_url
       )
-    `)
+    `
+    )
     .in("user_id", friendIds)
+    .eq("is_public", true)
     .order("diary_date", { ascending: false })
     .limit(50);
 
@@ -310,18 +335,35 @@ export async function getFriendDiaries(): Promise<FriendDiaryItem[]> {
 
 // 오늘 찌른 친구 ID 목록
 export async function getTodayPokedFriendIds(): Promise<string[]> {
-  const userId = await getAuthenticatedUserId();
-  const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  const { data, error } = await supabase
-    .from("pokes")
-    .select("receiver_id")
-    .eq("sender_id", userId)
-    .eq("poke_date", today);
+  if (!session?.access_token) {
+    throw new Error("로그인이 필요합니다.");
+  }
 
-  if (error) throw error;
+  const response = await fetch(
+    `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/poke-friend`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
 
-  return (data ?? []).map((row) => row.receiver_id);
+  const responseText = await response.text();
+  const result: { error?: string; pokedFriendIds?: string[] } = responseText
+    ? JSON.parse(responseText)
+    : {};
+
+  if (!response.ok) {
+    throw new Error(result.error ?? "오늘 찌른 친구 목록을 불러오지 못했습니다.");
+  }
+
+  return result.pokedFriendIds ?? [];
 }
 
 // 찌르기
@@ -345,15 +387,20 @@ export async function pokeFriend(receiverId: string) {
       body: JSON.stringify({
         receiverId,
       }),
-    },
+    }
   );
 
   const responseText = await response.text();
-  const result: { error?: string } = responseText ? JSON.parse(responseText) : {};
+  const result: { error?: string; receiverId?: string } = responseText
+    ? JSON.parse(responseText)
+    : {};
 
   if (!response.ok) {
     throw new Error(result.error ?? "친구 찌르기에 실패했습니다.");
   }
 
-  return result;
+  return {
+    ...result,
+    receiverId,
+  };
 }
