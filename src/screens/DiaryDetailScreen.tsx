@@ -200,7 +200,7 @@ export default function DiaryDetailScreen() {
             title: diary.title ?? '오늘의 일기',
             content: diary.content ?? diary.body ?? '',
             emotion: diary.emotion ?? null,
-            is_public: true,
+            is_public: isPublic,
             updated_at: new Date().toISOString(),
           },
           {
