@@ -52,22 +52,32 @@
 
 ```
 harumukkum/
-├── app/                    # Expo Router 파일 기반 라우팅
-│   ├── (tabs)/             # 하단 탭 (홈/캘린더/작성/리포트/친구)
-│   ├── auth/               # 로그인, 회원가입
-│   ├── diary/              # 일기 상세, 수정
-│   └── friends/            # 친구 관리
+├── app/                        # Expo Router 파일 기반 라우팅
+│   ├── (tabs)/                 # 하단 탭 (홈/캘린더/작성/리포트/친구)
+│   │   ├── index.tsx           # 홈
+│   │   ├── diary.tsx           # 캘린더
+│   │   ├── create.tsx          # 일기 작성
+│   │   ├── report.tsx          # 주간 리포트
+│   │   └── friends.tsx         # 친구
+│   ├── auth/                   # 로그인, 회원가입
+│   ├── diary/                  # 일기 상세, 수정
+│   ├── friends/                # 친구 관리
+│   └── mypage.tsx              # 마이페이지
 ├── src/
-│   ├── api/                # Supabase API (auth, diary, friends, report)
-│   ├── components/         # 공통 UI 컴포넌트 (Button, Card, Input 등)
-│   ├── constants/          # 컬러, 감정, 라우트 상수
-│   ├── screens/            # 화면 컴포넌트 (12개)
-│   ├── store/              # Zustand (auth, diary draft)
-│   ├── types/              # 타입 정의
-│   └── utils/              # 날짜, 검증 유틸
+│   ├── api/                    # Supabase API (auth, diary, friends, report)
+│   ├── components/             # 공통 UI (Button, Card, Input, Header 등 8개)
+│   ├── constants/              # 컬러, 감정(20종), 라우트 상수
+│   ├── screens/                # 화면 컴포넌트 (12개)
+│   ├── store/                  # Zustand (auth, diary draft)
+│   ├── types/                  # 타입 정의 (diary, user, friend, report)
+│   └── utils/                  # 날짜, 검증, 일기 유틸
 ├── supabase/
-│   └── functions/          # Edge Functions (일기 생성, 리포트, 포스터, 찌르기)
-└── assets/                 # 이미지, 아이콘
+│   └── functions/              # Edge Functions
+│       ├── generate-diary/     # AI 일기 생성
+│       ├── generate-weekly-report/  # AI 주간 리포트
+│       ├── generate-poster/    # AI 포스터 이미지
+│       └── poke-friend/        # 찌르기 알림
+└── assets/                     # 앱 아이콘, 스플래시, 이미지
 ```
 
 ---
@@ -95,16 +105,19 @@ Expo Go 앱으로 QR 코드 스캔하거나 에뮬레이터에서 실행.
 | 영역 | 상태 |
 |---|---|
 | 로그인 / 회원가입 (Supabase Auth) | ✅ 완료 |
-| AI 일기 생성 (4단계 질문 → Edge Function) | ✅ 완료 |
+| AI 일기 생성 (육하원칙 질문 → Edge Function) | ✅ 완료 |
 | 일기 상세 / 수정 / 삭제 | ✅ 완료 |
+| 일기 공개 / 비공개 설정 | ✅ 완료 |
 | 캘린더 (월별 조회, 사진 동기화, 월 이동) | ✅ 완료 |
 | 주간 리포트 (AI 분석, 차트, 키워드) | ✅ 완료 |
 | 친구 추가 / 요청 수락·거절 / 찌르기 | ✅ 완료 |
 | 친구 일기 피드 (공개 일기) | ✅ 완료 |
+| 친구 관리 (보낸 요청, 친구 삭제) | ✅ 완료 |
 | 마이페이지 (프로필 수정, 로그아웃) | ✅ 완료 |
 | 사진 업로드 (Supabase Storage) | ✅ 완료 |
 | Supabase Edge Functions (AI 일기/리포트/포스터/찌르기) | ✅ 완료 |
 | 디자인 시스템 (Figma → 코드 반영) | ✅ 완료 |
+| 앱 아이콘 | ✅ 완료 |
 | 푸시 알림 | 🔲 예정 |
 | 포스터 이미지 화면 표시 | 🔲 예정 |
 

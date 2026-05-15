@@ -200,7 +200,7 @@ export default function DiaryDetailScreen() {
             title: diary.title ?? '오늘의 일기',
             content: diary.content ?? diary.body ?? '',
             emotion: diary.emotion ?? null,
-            is_public: true,
+            is_public: isPublic,
             updated_at: new Date().toISOString(),
           },
           {
@@ -212,13 +212,17 @@ export default function DiaryDetailScreen() {
         throw error;
       }
 
-      setLastGeneratedDiary(null);
-      resetDraft();
-
       Alert.alert('저장 완료', '일기가 저장되었습니다.', [
         {
           text: '확인',
-          onPress: () => router.replace('/(tabs)' as any),
+          onPress: () => {
+            router.replace('/(tabs)' as any);
+
+            setTimeout(() => {
+              setLastGeneratedDiary(null);
+              resetDraft();
+            }, 300);
+          },
         },
       ]);
     } catch (error) {
