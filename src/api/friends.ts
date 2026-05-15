@@ -297,7 +297,6 @@ export async function getFriendDiaries(): Promise<FriendDiaryItem[]> {
       )
     `)
     .in("user_id", friendIds)
-    .eq("is_public", true)
     .order("diary_date", { ascending: false })
     .limit(50);
 
