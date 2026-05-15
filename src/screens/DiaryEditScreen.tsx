@@ -29,7 +29,12 @@ export default function DiaryEditScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const diaryId = Array.isArray(id) ? id[0] : id ?? '';
-  const { lastGeneratedDiary, setLastGeneratedDiary } = useDiaryStore();
+
+  const {
+    lastGeneratedDiary,
+    setLastGeneratedDiary,
+    resetDraft,
+  } = useDiaryStore();
 
   const [diary, setDiary] = useState<Diary | null>(null);
   const [title, setTitle] = useState('');
@@ -48,13 +53,15 @@ export default function DiaryEditScreen() {
       }
 
       try {
-        const data = lastGeneratedDiary?.id === diaryId
-          ? lastGeneratedDiary
-          : await getDiaryById(diaryId);
+        const data =
+          lastGeneratedDiary?.id === diaryId
+            ? lastGeneratedDiary
+            : await getDiaryById(diaryId);
 
         if (!mounted) return;
 
         setDiary(data);
+
         if (data) {
           setTitle(getDiaryTitle(data));
           setContent(getDiaryContent(data));
@@ -62,6 +69,7 @@ export default function DiaryEditScreen() {
         }
       } catch (error) {
         console.error('Diary edit load failed', error);
+
         if (mounted) {
           Alert.alert('오류', '수정할 일기를 불러오지 못했어요.');
         }
@@ -89,20 +97,23 @@ export default function DiaryEditScreen() {
     }
 
     setIsSaving(true);
+
     try {
       await updateDiary(diary.id, {
         title: nextTitle,
         content: nextContent,
         is_public: isPublic,
       });
-      // 스토어에 캐시된 구버전 데이터가 있으면 초기화해서 디테일 화면이 DB에서 새로 불러오도록 함
-      if (lastGeneratedDiary?.id === diary.id) {
-        setLastGeneratedDiary(null);
-      }
+
+      setLastGeneratedDiary(null);
+      resetDraft();
+
       Alert.alert('저장되었습니다.', '', [
         {
           text: '확인',
-          onPress: () => router.replace(`/diary/${diary.id}` as any),
+          onPress: () => {
+            router.replace('/(tabs)' as any);
+          },
         },
       ]);
     } catch (error) {
@@ -132,9 +143,12 @@ export default function DiaryEditScreen() {
           <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={22} color={colors.black} />
           </TouchableOpacity>
+
           <Text style={styles.headerTitle}>일기 수정</Text>
+
           <View style={styles.headerSpacer} />
         </View>
+
         <View style={styles.centerState}>
           <Text style={styles.emptyText}>수정할 일기를 찾을 수 없어요.</Text>
         </View>
@@ -152,7 +166,9 @@ export default function DiaryEditScreen() {
           <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
             <Ionicons name="arrow-back" size={22} color={colors.black} />
           </TouchableOpacity>
+
           <Text style={styles.headerTitle}>일기 수정</Text>
+
           <TouchableOpacity
             onPress={handleSave}
             disabled={isSaveDisabled}
@@ -176,6 +192,7 @@ export default function DiaryEditScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.label}>제목</Text>
+
           <TextInput
             style={styles.titleInput}
             value={title}
@@ -186,6 +203,7 @@ export default function DiaryEditScreen() {
           />
 
           <Text style={styles.label}>본문</Text>
+
           <TextInput
             style={styles.bodyInput}
             value={content}
@@ -203,17 +221,23 @@ export default function DiaryEditScreen() {
                 size={16}
                 color={isPublic ? colors.primary : colors.gray}
               />
+
               <View style={styles.toggleTextGroup}>
                 <Text style={styles.toggleLabel}>공개 설정</Text>
+
                 <Text style={styles.toggleSub}>
                   {isPublic ? '친구들이 이 일기를 볼 수 있어요' : '나만 볼 수 있어요'}
                 </Text>
               </View>
             </View>
+
             <Switch
               value={isPublic}
               onValueChange={setIsPublic}
-              trackColor={{ false: colors.grayBorder, true: colors.primaryLight }}
+              trackColor={{
+                false: colors.grayBorder,
+                true: colors.primaryLight,
+              }}
               thumbColor={colors.white}
             />
           </View>

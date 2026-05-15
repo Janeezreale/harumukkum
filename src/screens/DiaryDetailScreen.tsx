@@ -55,6 +55,19 @@ export default function DiaryDetailScreen() {
       lastGeneratedDiary.id === diary.id ||
       lastGeneratedDiary.diary_date === diary.diary_date);
 
+  const moveToEdit = () => {
+    if (!diary) return;
+
+    router.push({
+      pathname: '/diary/edit/[id]',
+      params: {
+        id: diary.id,
+        returnTo: isGeneratedPreview ? 'home' : 'detail',
+        isGeneratedPreview: isGeneratedPreview ? 'true' : 'false',
+      },
+    } as any);
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -333,7 +346,7 @@ export default function DiaryDetailScreen() {
           {!isGeneratedPreview && (
             <TouchableOpacity
               style={styles.editLink}
-              onPress={() => router.replace(`/diary/edit/${diary.id}` as any)}
+              onPress={moveToEdit}
             >
               <Ionicons name="pencil" size={14} color={colors.gray} />
               <Text style={styles.editLinkText}>수정</Text>
@@ -368,7 +381,7 @@ export default function DiaryDetailScreen() {
             <View style={styles.actionRow}>
               <TouchableOpacity
                 style={styles.editButton}
-                onPress={() => router.replace(`/diary/edit/${diary.id}` as any)}
+                onPress={moveToEdit}
                 activeOpacity={0.8}
                 disabled={isSaving}
               >
