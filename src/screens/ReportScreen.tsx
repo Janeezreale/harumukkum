@@ -45,15 +45,11 @@ export default function ReportScreen() {
         getMyDiaries(),
       ]);
       setDiaries(diariesData);
-
-      if (reportsData && reportsData.length > 0) {
-        // 이번 주 리포트 우선, 없으면 가장 최신 리포트
-        const { startDate, endDate } = getWeekRange();
-        const currentWeekReport = reportsData.find(
-          (item: any) => item.week_start === startDate && item.week_end === endDate
-        );
-        setReport((currentWeekReport ?? reportsData[0]) as WeeklyReport);
-      }
+      const { startDate, endDate } = getWeekRange();
+      const currentWeekReport = reportsData.find(
+        (item) => item.week_start === startDate && item.week_end === endDate
+      );
+      setReport((currentWeekReport ?? null) as WeeklyReport | null);
     } catch {
       // silent
     } finally {
@@ -70,12 +66,7 @@ export default function ReportScreen() {
     setIsGenerating(true);
     try {
       const newReport = await generateWeeklyReport(startDate, endDate);
-      if (newReport) {
-        setReport(newReport as WeeklyReport);
-      } else {
-        // 생성 후 다시 로드
-        await loadData();
-      }
+      setReport(newReport as WeeklyReport);
     } catch (error) {
       Alert.alert("리포트 생성 실패", error instanceof Error ? error.message : "다시 시도해주세요.");
     } finally {

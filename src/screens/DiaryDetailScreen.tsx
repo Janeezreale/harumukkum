@@ -65,19 +65,8 @@ export default function DiaryDetailScreen() {
       }
 
       if (routeDiaryKey === 'generated') {
-        // store가 아직 업데이트 안 됐을 수 있으니 잠시 대기
-        if (!lastGeneratedDiary) {
-          await new Promise((r) => setTimeout(r, 300));
-          const freshDiary = useDiaryStore.getState().lastGeneratedDiary;
-          if (mounted) {
-            setDiary(freshDiary ?? null);
-            setIsPublic(freshDiary?.is_public ?? true);
-            setIsLoading(false);
-          }
-          return;
-        }
         if (mounted) {
-          setDiary(lastGeneratedDiary);
+          setDiary(lastGeneratedDiary ?? null);
           setIsPublic(lastGeneratedDiary?.is_public ?? true);
           setIsLoading(false);
         }
@@ -211,7 +200,7 @@ export default function DiaryDetailScreen() {
             title: diary.title ?? '오늘의 일기',
             content: diary.content ?? diary.body ?? '',
             emotion: diary.emotion ?? null,
-            is_public: isPublic,
+            is_public: true,
             updated_at: new Date().toISOString(),
           },
           {
